@@ -1,0 +1,109 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Windows ###
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+### H2 / banco local (NUNCA versionar dados de aplicação) ###
+data/
+*.mv.db
+*.trace.db
+*.lock.db
+*.h2.db
+
+### Logs ###
+*.log
+*.log.*
+logs/
+spring.log
+
+### Backups e arquivos temporários ###
+*.bak
+*.tmp
+*.swp
+*~
+
+### Segredos e configuração local (CRÍTICO para segurança) ###
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+# Profiles locais e overrides — nunca subir credenciais
+application-local.properties
+application-local.yml
+application-local.yaml
+application-secret.properties
+application-secrets.properties
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+src/main/resources/application-secret*.properties
+# Chaves, certificados e keystores
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+*.crt
+*.cer
+*.der
+secrets/
+.secrets/
+credentials.json
+service-account*.json
+
+### Cobertura de testes / análise estática ###
+.jacoco/
+jacoco.exec
+*.exec
+.sonar/
+.scannerwork/
+
+### Diretórios de build alternativos ###
+out/
+bin/
+
+### Ferramentas de IA / configuração local do Claude ###
+.claude/settings.local.json
+.claude/local/
+CLAUDE.local.md

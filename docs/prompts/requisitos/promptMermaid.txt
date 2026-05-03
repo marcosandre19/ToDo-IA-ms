@@ -1,0 +1,52 @@
+# Contexto
+MVP de API REST em Spring Boot (Java 11) para gerenciar tarefas. A documentação técnica está em `escopo-todo.md`, o backlog por releases em `docs/backlog.md`, e as convenções em `CLAUDE.md`. Leia os três antes de começar — os diagramas devem refletir fielmente o que já está documentado, não inventar componentes ou fluxos novos.
+
+Esta etapa fecha o planejamento visual antes da implementação começar.
+
+# Objetivo
+Gerar um único arquivo `docs/diagramas.md` contendo diagramas Mermaid que representem visualmente a arquitetura e os fluxos do MVP. O documento será consultado durante a implementação como referência rápida.
+
+# Diagramas obrigatórios
+
+## 1. Arquitetura em camadas (`flowchart TD`)
+Deve mostrar:
+- Cliente HTTP (externo)
+- Camada Controller (com nome dos endpoints REST)
+- Camada Service (regras de negócio)
+- Camada Repository (Spring Data JPA)
+- Banco H2 (modo arquivo)
+- Componentes transversais: DTOs, Bean Validation, Global Exception Handler
+- Direção do fluxo de dados entre as camadas
+
+## 2. Fluxo de requisição bem-sucedida (`sequenceDiagram`)
+Deve mostrar o caminho completo de um `POST /tarefas` válido:
+- Cliente → Controller → Validação (DTO) → Service → Repository → H2 → resposta `201 Created`
+- Inclua os retornos de cada camada, não só as chamadas
+
+## 3. Fluxo de requisição com erro de validação (`sequenceDiagram`)
+Mesmo endpoint `POST /v`, mas com payload inválido (ex.: title vazio):
+- Mostre onde a validação falha
+- Mostre o Exception Handler global interceptando
+- Mostre a resposta `400 Bad Request` com o JSON de erro padronizado
+
+# Diagramas opcionais (incluir SOMENTE se justificável pelo escopo)
+- **Modelo ER (`erDiagram`)**: incluir apenas se houver mais de uma entidade ou relacionamento previsto em `escopo-todo.md`
+- **Diagrama de estados (`stateDiagram-v2`)**: incluir apenas se a entidade `Task` tiver campo de status com transições definidas no escopo
+
+Se um diagrama opcional não for incluído, escreva uma linha curta no final do arquivo justificando ("Diagrama ER omitido — modelo possui apenas a entidade Task sem relacionamentos").
+
+# Estilo
+- Cada diagrama em seu próprio bloco ```mermaid com cabeçalho `##` descrevendo o que ele representa
+- Antes de cada diagrama, 1-2 linhas de prosa explicando o que ele mostra (não o que é Mermaid)
+- Nomes de componentes devem bater com a estrutura de pacotes definida no `escopo-todo.md` (ex.: se o escopo diz `TaskController`, o diagrama usa `TaskController`, não "Controller de Tarefas")
+- Sintaxe Mermaid válida e renderizável — sem caracteres especiais quebrados, sem labels com aspas não escapadas
+- Sem cores customizadas ou temas exóticos: estilo padrão Mermaid
+
+# Resposta esperada
+- Crie SOMENTE o arquivo `docs/diagramas.md`
+- NÃO altere outros arquivos
+- NÃO inicie implementação
+- Ao final, imprima no chat apenas:
+  1. Lista dos diagramas incluídos
+  2. Diagramas opcionais omitidos com justificativa
+  3. Aviso se algum nome de componente no diagrama não casa exatamente com `escopo-todo.md`

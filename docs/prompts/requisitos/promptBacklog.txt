@@ -1,0 +1,44 @@
+# Contexto
+Estou desenvolvendo um MVP de API REST em Spring Boot (Java 11) para gerenciar tarefas. A documentação técnica do escopo já existe em `escopo-todo.md` na raiz, e o `CLAUDE.md` descreve stack e convenções. Leia ambos antes de começar.
+
+Esta é a etapa de **planejamento de entregas**: quero organizar o trabalho em um backlog dividido em 3 releases incrementais.
+
+# Objetivo
+Gerar um único arquivo `docs/backlog.md` com o backlog mínimo do MVP, organizado em 3 releases:
+1. **Release 1 — Core**: CRUD funcional ponta a ponta (entidade, persistência H2, endpoints básicos operando com payloads válidos)
+2. **Release 2 — Qualidade**: validações, tratamento de erros padronizado, testes (unitários e de integração), logs
+3. **Release 3 — Entrega final**: documentação da API (OpenAPI/Swagger), README de uso, profiles de configuração, ajustes finais para entrega
+
+O backlog deve ser **derivado e consistente** com as fases já definidas em `escopo-todo.md` — não invente requisitos novos que contradigam o escopo. Se identificar lacuna no escopo, sinalize no final do arquivo numa seção "Pendências de escopo" em vez de inventar.
+
+# Conteúdo obrigatório
+Para cada release:
+- Cabeçalho com nome, objetivo da release (1 linha) e definição de "pronto" da release
+- Lista de itens, cada um com:
+  - **ID** no formato `RF-XXX` (Requisito Funcional — comportamento observável da API) ou `RT-XXX` (Requisito Técnico — infraestrutura, build, configuração, testes, docs)
+  - Título curto e direto
+  - **Critérios de aceite** como sub-checklist (cada critério verificável e objetivo, sem ambiguidade — evite "deve funcionar bem", prefira "retorna 201 com header Location apontando para /tasks/{id}")
+
+IDs sequenciais e únicos no documento inteiro (RF-001, RF-002... e RT-001, RT-002... independentes entre si).
+
+# Distribuição esperada (referência, não rígida)
+- Release 1: predominantemente RF (CRUD) + RTs mínimos de setup Spring Boot e H2
+- Release 2: mistura de RF (regras de validação, respostas de erro) e RT (testes, logs, exception handler)
+- Release 3: predominantemente RT (docs, OpenAPI, README, profiles)
+
+# Estilo
+- Markdown puro com checklist (`- [ ]`) em todos os itens e critérios
+- Linguagem técnica, direta, sem floreios
+- Sem introdução longa: vá direto pro Release 1 após um cabeçalho mínimo
+- Use blocos `code` para nomes de endpoints, classes, configs e payloads de exemplo quando necessário
+- Critérios de aceite devem ser testáveis (alguém deve conseguir marcar `[x]` sem ambiguidade)
+
+# Resposta esperada
+- Crie SOMENTE o arquivo `docs/backlog.md` (crie a pasta `docs/` se não existir)
+- NÃO altere `escopo-todo.md`, `CLAUDE.md`, `pom.xml` ou qualquer código
+- NÃO inicie nenhuma implementação
+- Ao final, imprima no chat apenas:
+  1. Total de itens por release (ex.: "Release 1: 8 RF, 2 RT")
+  2. A seção "Pendências de escopo", se houver alguma
+
+  Para eu revisar antes de seguir para a implementação.

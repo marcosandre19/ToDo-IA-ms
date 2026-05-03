@@ -1,0 +1,56 @@
+# Contexto
+MVP de API REST em Spring Boot (Java 11) para gerenciar tarefas. A fase de requisitos e planejamento está concluída, com os seguintes artefatos:
+- `escopo-todo.md` — documentação técnica do escopo
+- `docs/backlog.md` — backlog dividido em 3 releases (Core, Qualidade, Entrega final) com IDs RF/RT
+- `docs/diagramas.md` — diagramas Mermaid de arquitetura e fluxos
+- `CLAUDE.md` — convenções e estado do projeto
+
+Antes de iniciar a implementação, preciso de uma **revisão crítica** desses documentos. Esta é a última etapa da fase de requisitos.
+
+# Objetivo
+Agir como **revisor técnico sênior** dos documentos de planejamento e responder, de forma direta e acionável, três perguntas específicas. O foco é encontrar problemas, não validar o que está bom.
+
+# Postura esperada
+- Crítico, não complacente. Se algo está bem dimensionado, diga "ok" em uma linha e siga adiante — o valor está no que está errado, faltando ou arriscado
+- Concreto: cite IDs (RF-XXX, RT-XXX), nomes de seções e trechos específicos dos documentos
+- Acionável: cada problema apontado deve vir com uma sugestão clara de o que fazer (mover para release X, adicionar item Y, remover Z, dividir W em N itens)
+- Sem rodeios introdutórios ("Após análise cuidadosa...") nem conclusões genéricas
+
+# Perguntas a responder
+
+## 1. O que está grande demais para a release inicial (Core)?
+Avalie a Release 1 do backlog e o escopo correspondente. Identifique:
+- Itens que ultrapassam o que é necessário para um CRUD funcional ponta a ponta
+- Itens que poderiam ser adiados para Release 2 ou 3 sem comprometer o funcionamento básico
+- Itens com critérios de aceite excessivamente ambiciosos para uma primeira release
+Para cada problema: cite o ID, explique por que está grande demais e sugira para qual release mover (ou como reduzir o escopo).
+
+## 2. O que está faltando para testabilidade?
+Avalie todos os documentos sob a ótica de "consigo testar isso de forma automatizada e manual?". Identifique:
+- Critérios de aceite vagos que não geram caso de teste claro
+- Ausência de dados de exemplo (payloads, fixtures, banco inicial)
+- Falta de estratégia de testes (pirâmide, ferramentas, escopo unitário vs integração)
+- Endpoints ou regras sem comportamento de erro especificado
+- Configuração de banco para testes (perfil separado, banco em memória puro vs arquivo, limpeza entre testes)
+Para cada lacuna: explique o impacto e sugira o que adicionar e onde (qual documento, qual seção, qual release).
+
+## 3. Quais os 3 riscos técnicos devo mitigar antes da implementação?
+Liste exatamente **3 riscos** — não 2, não 5. Escolha os de maior impacto x probabilidade. Para cada risco:
+- **Risco**: descrição em 1 frase
+- **Por que é risco agora**: o que no escopo/backlog atual cria ou amplifica esse risco
+- **Mitigação concreta**: ação específica antes de codar (ajuste em documento, prova de conceito, decisão a tomar, ferramenta a escolher)
+- **Custo de não mitigar**: o que dói depois se ignorado
+
+Considere especialmente: persistência H2 em arquivo (concorrência, locking, schema evolution), conversão do projeto Java puro para Spring Boot, divergências entre documentos, ausência de versionamento de API, ausência de estratégia de migration, exposição do Actuator, encoding/timezone para campos de data.
+
+# Estilo
+- Markdown estruturado: três `##` (um por pergunta), respostas em listas com sub-bullets quando útil
+- Sem tabela de conteúdo, sem resumo executivo, sem encerramento
+- Citações de IDs em `code style` (ex.: `RF-003`, `RT-002`)
+- Quando referenciar trecho de documento, cite arquivo e seção (ex.: "`escopo-todo.md` §Modelo de dados")
+
+# Resposta esperada
+- Imprimir a revisão **diretamente no chat** — não criar arquivo
+- NÃO alterar nenhum documento existente nesta etapa (a aplicação das correções será uma etapa separada que decidirei após ler a revisão)
+- NÃO iniciar implementação
+- Ao final da revisão, listar em uma seção `## Próximos passos sugeridos` apenas os 3-5 ajustes mais urgentes em ordem de prioridade, no formato: "Ajustar X em `arquivo.md` para Y"

@@ -1,0 +1,36 @@
+# Contexto
+Estou desenvolvendo um MVP de API REST em Spring Boot (Java 11) para gerenciar tarefas (CRUD). **definir e documentar o escopo técnico antes de escrever qualquer código de produção**.
+
+Stack já decidida:
+- Java 11
+- Spring Boot (starters: web, data-jpa, validation)
+- H2 em modo arquivo (`jdbc:h2:file:./data/tarefas`)
+- Maven
+- IntelliJ IDEA
+
+Detalhes adicionais já existentes no `CLAUDE.md` da raiz — leia antes de começar.
+
+# Objetivo
+Gerar um único arquivo `docs/escopo-todo.md` na raiz do projeto com a documentação técnica do MVP. Esse documento será a fonte da verdade para todas as fases seguintes.
+
+# Conteúdo obrigatório do arquivo
+1. **Objetivo do MVP** — 1 parágrafo curto
+2. **Stack e dependências** — lista de starters e versões, com justificativa em 1 linha por item
+3. **Modelo de dados** — entidade `Tarefas` com campos, tipos, restrições (NOT NULL, tamanho, default), em formato de tabela
+4. **Endpoints da API** — tabela com método, path, descrição, status codes esperados; e bloco de exemplo (JSON request + response) para cada endpoint
+5. **Regras de negócio e validações** — lista enumerada (ex.: título obrigatório, tamanho máximo, status default, etc.)
+6. **Tratamento de erros** — estrutura padrão de resposta de erro (JSON) e mapeamento de exceções → status HTTP
+7. **Estrutura de pacotes** — árvore de diretórios sugerida
+8. **Fases incrementais de implementação** — lista numerada e ordenada de fases, cada uma com: nome, entregas concretas e critério de "pronto". As fases devem ser pequenas o suficiente para serem revisadas individualmente (ex.: Fase 1 = entidade + repository + config H2; Fase 2 = service + DTOs; etc.)
+
+# Estilo
+- Linguagem técnica, direta, sem introduções genéricas ("Este documento descreve...") nem conclusões
+- Markdown bem estruturado: headings hierárquicos, tabelas para dados tabulares, blocos de código com fences e linguagem (```json, ```java, ```bash)
+- Exemplos de payload concretos (não placeholders genéricos do tipo "string")
+- **Apenas especificação** — sem código de implementação
+
+# Resposta esperada
+- Crie SOMENTE o arquivo `escopo-todo.md` na raiz do projeto
+- NÃO crie classes, configs, nem altere `pom.xml` nesta etapa
+- NÃO inicie nenhuma implementação
+- Ao final, imprima no chat apenas a lista de fases definidas (números e títulos), para eu confirmar antes de seguir para a próxima etapa
