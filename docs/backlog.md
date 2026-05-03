@@ -48,32 +48,32 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [x] Suporte a filtro por `status` e `prioridade` via query methods derivados (`findByStatus`, `findByPrioridade`, `findByStatusAndPrioridade`)
   - [x] `save`, `findById`, `findAll`, `deleteById` operam sem erro contra o H2 (herdados de `JpaRepository`, sem redeclaração)
 
-- [ ] **RF-003** — Endpoint `POST /api/tarefas` (criação)
-  - [ ] Aceita JSON conforme exemplo 4.1 do escopo
-  - [ ] Retorna `201 Created` com header `Location: /api/tarefas/{id}`
-  - [ ] Corpo da resposta contém `id`, `criadoEm`, `atualizadoEm` populados pelo servidor
-  - [ ] `status` default = `PENDENTE` e `prioridade` default = `MEDIA` quando omitidos
-  - [ ] Registro persistido na tabela `tarefas`
+- [x] **RF-003** — Endpoint `POST /api/tarefas` (criação)
+  - [x] Aceita JSON conforme exemplo 4.1 do escopo
+  - [x] Retorna `201 Created` com header `Location: /api/tarefas/{id}`
+  - [x] Corpo da resposta contém `id`, `criadoEm`, `atualizadoEm` populados pelo servidor
+  - [x] `status` default = `PENDENTE` e `prioridade` default = `MEDIA` quando omitidos
+  - [x] Registro persistido na tabela `tarefas`
 
-- [ ] **RF-004** — Endpoint `GET /api/tarefas` (listagem sem filtros)
-  - [ ] Retorna `200 OK` com array de todas as tarefas
-  - [ ] Lista vazia retorna `200 OK` com `[]`
-  - [ ] Ordenação default por `criadoEm DESC`
-  - [ ] Suporte a query params (`status`, `prioridade`) é tratado em `RF-004.1` no Release 2 (depende da validação de enums em `RF-012`)
+- [x] **RF-004** — Endpoint `GET /api/tarefas` (listagem)
+  - [x] Retorna `200 OK` com array de todas as tarefas
+  - [x] Lista vazia retorna `200 OK` com `[]`
+  - [x] Ordenação default por `criadoEm DESC`
+  - [x] Suporte a query params (`status`, `prioridade`) entregue antecipadamente — ver `RF-004.1`
 
-- [ ] **RF-005** — Endpoint `GET /api/tarefas/{id}` (busca por id)
-  - [ ] Id existente: retorna `200 OK` com payload conforme exemplo 4.3
-  - [ ] Id inexistente: retorna `404 Not Found`
+- [x] **RF-005** — Endpoint `GET /api/tarefas/{id}` (busca por id)
+  - [x] Id existente: retorna `200 OK` com payload conforme exemplo 4.3
+  - [x] Id inexistente: retorna `404 Not Found`
 
-- [ ] **RF-006** — Endpoint `PUT /api/tarefas/{id}` (substituição completa)
-  - [ ] Id existente: retorna `200 OK` com a tarefa atualizada
-  - [ ] Todos os campos enviados sobrescrevem os atuais
-  - [ ] `criadoEm` permanece inalterado, `atualizadoEm` é atualizado para o instante da requisição
-  - [ ] Id inexistente: retorna `404 Not Found`
+- [x] **RF-006** — Endpoint `PUT /api/tarefas/{id}` (substituição completa)
+  - [x] Id existente: retorna `200 OK` com a tarefa atualizada
+  - [x] Todos os campos enviados sobrescrevem os atuais
+  - [x] `criadoEm` permanece inalterado, `atualizadoEm` é atualizado para o instante da requisição
+  - [x] Id inexistente: retorna `404 Not Found`
 
-- [ ] **RF-008** — Endpoint `DELETE /api/tarefas/{id}` (remoção)
-  - [ ] Id existente: retorna `204 No Content` com corpo vazio e remove o registro
-  - [ ] Id inexistente: retorna `404 Not Found`
+- [x] **RF-008** — Endpoint `DELETE /api/tarefas/{id}` (remoção)
+  - [x] Id existente: retorna `204 No Content` com corpo vazio e remove o registro
+  - [x] Id inexistente: retorna `404 Not Found`
 
 - [x] **RF-008.1** — Endpoint `GET /health` (verificação de disponibilidade via actuator)
   - [x] Dependência `spring-boot-starter-actuator` no `pom.xml`
@@ -84,11 +84,11 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [x] Endpoint não exige autenticação e não é coberto pela validação Bean Validation
   - [x] Outros endpoints do actuator (`/info`, `/metrics`, etc.) **não** são expostos no MVP (`exposure.include=health`)
 
-- [ ] **RF-009** — Camada de serviço `TarefaService` e DTOs
+- [x] **RF-009** — Camada de serviço `TarefaService` e DTOs
   - [x] `dto.TarefaRequest`, `dto.TarefaResponse`, `dto.AtualizarStatusRequest` criados (este último ainda sem método consumidor — `atualizarStatus` é release 2)
   - [x] `service.TarefaService` com métodos `criar`, `listar(filtros)`, `buscarPorId`, `atualizar`, `remover` (`atualizarStatus` adiado para release 2 junto com `RF-007`)
   - [x] Mapeamento entidade ↔ DTO manual via helpers `toResponse` e setters explícitos no `TarefaService` (sem MapStruct)
-  - [ ] Controller nunca expõe a entidade `Tarefa` diretamente (validável apenas quando o controller existir)
+  - [x] Controller nunca expõe a entidade `Tarefa` diretamente — todos os endpoints recebem `TarefaRequest` e devolvem `TarefaResponse`
 
 ---
 
@@ -100,12 +100,12 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
 
 ### Requisitos funcionais
 
-- [ ] **RF-004.1** — `GET /api/tarefas` com filtros via query param
-  - [ ] Com `?status=PENDENTE`: retorna apenas tarefas com aquele status
-  - [ ] Com `?prioridade=ALTA`: retorna apenas tarefas com aquela prioridade
-  - [ ] Filtros combinados (`?status=PENDENTE&prioridade=ALTA`): aplica AND
-  - [ ] Valor inválido em `?status=` ou `?prioridade=`: retorna `400` (depende de `RF-012`)
-  - [ ] Mantém ordenação default por `criadoEm DESC`
+- [x] **RF-004.1** — `GET /api/tarefas` com filtros via query param (entregue antecipadamente junto com `RF-004`)
+  - [x] Com `?status=PENDENTE`: retorna apenas tarefas com aquele status
+  - [x] Com `?prioridade=ALTA`: retorna apenas tarefas com aquela prioridade
+  - [x] Filtros combinados (`?status=PENDENTE&prioridade=ALTA`): aplica AND
+  - [x] Valor inválido em `?status=` ou `?prioridade=`: retorna `400` via `MethodArgumentTypeMismatchException` no `GlobalExceptionHandler`
+  - [x] Mantém ordenação default por `criadoEm DESC`
 
 - [ ] **RF-007** — Endpoint `PATCH /api/tarefas/{id}/status` (atualização de status)
   - [ ] Aceita JSON `{ "status": "CONCLUIDA" }`
@@ -151,15 +151,15 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
 ### Requisitos técnicos
 
 - [ ] **RT-004** — `GlobalExceptionHandler` com `@RestControllerAdvice`
-  - [ ] Classe `exception.GlobalExceptionHandler` anotada com `@RestControllerAdvice`
-  - [ ] Handlers para `MethodArgumentNotValidException` → 400
-  - [ ] Handler para `ConstraintViolationException` → 400
-  - [ ] Handler para `HttpMessageNotReadableException` → 400 (JSON malformado, enum inválido)
-  - [ ] Handler para `MethodArgumentTypeMismatchException` → 400
-  - [ ] Handler para `TarefaNaoEncontradaException` → 404
-  - [ ] Handler para `DataIntegrityViolationException` → 409
-  - [ ] Handler fallback para `Exception` → 500
-  - [ ] DTO `dto.ErroResponse` usado em todas as respostas
+  - [x] Classe `exception.GlobalExceptionHandler` anotada com `@RestControllerAdvice`
+  - [x] Handlers para `MethodArgumentNotValidException` → 400
+  - [ ] Handler para `ConstraintViolationException` → 400 (release 2 — usado em validação de query/path)
+  - [x] Handler para `HttpMessageNotReadableException` → 400 (JSON malformado, enum inválido)
+  - [x] Handler para `MethodArgumentTypeMismatchException` → 400
+  - [x] Handler para `TarefaNaoEncontradaException` → 404
+  - [ ] Handler para `DataIntegrityViolationException` → 409 (release 2)
+  - [x] Handler fallback para `Exception` → 500
+  - [x] DTO `dto.ErroResponse` usado em todas as respostas
 
 - [ ] **RT-005** — Exceção customizada `TarefaNaoEncontradaException`
   - [x] Classe `exception.TarefaNaoEncontradaException extends RuntimeException`
