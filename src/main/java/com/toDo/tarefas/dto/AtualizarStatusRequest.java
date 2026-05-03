@@ -1,6 +1,7 @@
 package com.toDo.tarefas.dto;
 
 import com.toDo.tarefas.entity.enums.StatusTarefa;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.constraints.NotNull;
 
@@ -10,6 +11,7 @@ import javax.validation.constraints.NotNull;
  */
 public class AtualizarStatusRequest {
 
+    @Schema(description = "Novo status da tarefa", example = "CONCLUIDA")
     @NotNull
     private StatusTarefa status;
 

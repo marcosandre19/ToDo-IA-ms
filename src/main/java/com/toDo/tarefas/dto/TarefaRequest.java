@@ -2,6 +2,7 @@ package com.toDo.tarefas.dto;
 
 import com.toDo.tarefas.entity.enums.Prioridade;
 import com.toDo.tarefas.entity.enums.StatusTarefa;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
@@ -16,17 +17,24 @@ import java.time.LocalDate;
  */
 public class TarefaRequest {
 
+    @Schema(description = "Título da tarefa", example = "Revisar pull request #42")
     @NotBlank
     @Size(min = 1, max = 120)
     private String titulo;
 
+    @Schema(description = "Descrição livre da tarefa",
+            example = "Validar testes da camada de service e cobertura.")
     @Size(max = 1000)
     private String descricao;
 
+    @Schema(description = "Status da tarefa. Default na criação: PENDENTE", example = "PENDENTE")
     private StatusTarefa status;
 
+    @Schema(description = "Prioridade da tarefa. Default na criação: MEDIA", example = "ALTA")
     private Prioridade prioridade;
 
+    @Schema(description = "Data de vencimento (opcional). Na criação, deve ser hoje ou futuro em America/Sao_Paulo",
+            example = "2026-12-31")
     private LocalDate dataVencimento;
 
     public TarefaRequest() {

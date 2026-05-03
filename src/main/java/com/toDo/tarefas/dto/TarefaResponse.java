@@ -2,6 +2,7 @@ package com.toDo.tarefas.dto;
 
 import com.toDo.tarefas.entity.enums.Prioridade;
 import com.toDo.tarefas.entity.enums.StatusTarefa;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -14,13 +15,31 @@ import java.time.OffsetDateTime;
  */
 public class TarefaResponse {
 
+    @Schema(description = "Identificador da tarefa", example = "1")
     private Long id;
+
+    @Schema(description = "Título da tarefa", example = "Revisar pull request #42")
     private String titulo;
+
+    @Schema(description = "Descrição livre da tarefa",
+            example = "Validar testes da camada de service e cobertura.")
     private String descricao;
+
+    @Schema(description = "Status atual da tarefa", example = "PENDENTE")
     private StatusTarefa status;
+
+    @Schema(description = "Prioridade da tarefa", example = "ALTA")
     private Prioridade prioridade;
+
+    @Schema(description = "Data de vencimento", example = "2026-12-31")
     private LocalDate dataVencimento;
+
+    @Schema(description = "Instante de criação em UTC (ISO-8601 com offset)",
+            example = "2026-05-03T14:22:31Z")
     private OffsetDateTime criadoEm;
+
+    @Schema(description = "Instante da última atualização em UTC (ISO-8601 com offset)",
+            example = "2026-05-03T14:22:31Z")
     private OffsetDateTime atualizadoEm;
 
     public TarefaResponse() {

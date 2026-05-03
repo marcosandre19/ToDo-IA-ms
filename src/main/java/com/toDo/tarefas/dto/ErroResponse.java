@@ -1,6 +1,7 @@
 package com.toDo.tarefas.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,12 +22,23 @@ import java.util.List;
  */
 public class ErroResponse {
 
+    @Schema(description = "Instante do erro em UTC (ISO-8601 com offset)",
+            example = "2026-05-03T14:22:31Z")
     private OffsetDateTime timestamp;
+
+    @Schema(description = "Código HTTP", example = "400")
     private int status;
+
+    @Schema(description = "Frase padrão do código HTTP", example = "Bad Request")
     private String error;
+
+    @Schema(description = "Mensagem agregada do erro", example = "Erro de validação")
     private String message;
+
+    @Schema(description = "Path da requisição que falhou", example = "/api/tarefas")
     private String path;
 
+    @Schema(description = "Lista de erros por campo, presente apenas em validação multi-campo")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ErroCampo> errors;
 
