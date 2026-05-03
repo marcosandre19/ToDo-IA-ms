@@ -276,7 +276,7 @@ Rodar uma classe específica:
 
 ## Configuração
 
-- **Banco H2 (modo arquivo):** `jdbc:h2:file:./data/tarefas;AUTO_SERVER=TRUE`. Arquivo físico: `./data/tarefas.mv.db`.
+- **Banco H2 (modo arquivo):** `jdbc:h2:file:./data/tarefas;AUTO_SERVER=TRUE`. Arquivo físico: `./data/tarefas.mv.db`. Pode ser sobrescrito via variáveis de ambiente `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` — ver [`.env.example`](.env.example).
 - **Console H2:** habilitado em `http://localhost:8080/h2-console`. Credenciais default: usuário `sa`, senha vazia.
 - **Schema:** Hibernate `ddl-auto=update` cria/altera a tabela automaticamente. Sem ferramenta de migration (Flyway/Liquibase) — registrado como dívida técnica em `escopo-todo.md` §2.
 - **Timezone:** instantes (`criadoEm`, `atualizadoEm`) gravados e serializados em UTC com offset `Z`. Regra "hoje ou futuro" do `dataVencimento` é avaliada em `America/Sao_Paulo`.
@@ -351,3 +351,11 @@ Todo código foi revisado e validado manualmente; o histórico de commits reflet
 - [`docs/diagramas.md`](docs/diagramas.md) — arquitetura em camadas, fluxos de sucesso/erro, diagrama de estados
 - [`CLAUDE.md`](CLAUDE.md) — convenções (idioma, pacotes, idioma do código)
 - [`docs/postman/tarefas.postman_collection.json`](docs/postman/tarefas.postman_collection.json) — Postman Collection com cenários de teste manual
+
+## Licença
+
+Distribuído sob a licença **MIT**. Veja [`LICENSE`](LICENSE) para o texto completo.
+
+```
+Copyright (c) 2026 marcosandre19
+```
