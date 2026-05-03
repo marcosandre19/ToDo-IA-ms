@@ -1,0 +1,96 @@
+# Contexto
+MVP de API REST em Spring Boot 2.7.x (Java 11) para gerenciar tarefas. Documentos de referência:
+- `escopo-todo.md` — escopo técnico
+- `docs/backlog.md` — backlog por release com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos
+- `CLAUDE.md` — convenções e estado do projeto
+
+**Leia os quatro documentos antes de começar.** Se houver divergência entre eles, pare e me avise — não decida sozinho.
+
+Etapas concluídas:
+1. Conversão para Spring Boot ✅
+2. Enums + Entidades ✅ (entidade principal: `Tarefa.java`)
+
+Etapa atual: **camada de exceptions**.
+
+Próximas etapas (não fazer agora): repository, service, controller.
+
+# Padrão de idioma do código (DECISÃO QUE PASSA A VALER)
+Todo código de domínio deste projeto usa **português brasileiro**: nomes de classes, métodos, variáveis, pacotes, mensagens de erro, comentários e JavaDoc. Mantém consistência com `Tarefa.java` que já foi criada.
+
+Exemplos:
+- Classes: `Tarefa`, `TarefaNaoEncontradaException`, `ErroResposta`, `TarefaRepository`, `TarefaService`, `TarefaController`
+- Pacotes: `entidade`, `excecao`, `repositorio`, `servico`, `controlador`, `dto`
+- Mensagens: `"Tarefa não encontrada"`, `"O título é obrigatório"`
+- Comentários e JavaDoc: em português
+
+Exceção: **anotações Spring/JPA, palavras-chave Java e nomes de bibliotecas permanecem em inglês** (`@Entity`, `@Service`, `RuntimeException`, `findById` etc.) — isso é parte do framework, não do domínio.
+
+**Atualizar o `CLAUDE.md`** adicionando uma seção `## Idioma do código` registrando essa decisão, para que sirva de referência permanente nas próximas etapas.
+
+# Objetivo
+Implementar a camada de exceções de domínio + DTO de resposta de erro padronizado.
+
+**NÃO criar nesta etapa**:
+- `@RestControllerAdvice` / handler global — fica para etapa do controller, onde será exercitado de verdade
+- Repository, service, controller, DTOs de domínio
+- Testes (etapa separada)
+
+# Conteúdo a implementar
+
+## 1. Exceções de domínio customizadas
+Para cada situação de erro identificada no `escopo-todo.md` e nos critérios de aceite do `docs/backlog.md`, criar uma exceção customizada. Tipicamente para um CRUD:
+- `TarefaNaoEncontradaException` — quando uma tarefa não existe (404)
+- Outras exceções de regra de negócio que o escopo definir (ex.: transição inválida de status, se aplicável)
+
+**Não inventar exceções que o escopo não pede.** Se o escopo só prevê "não encontrada", crie só essa.
+
+Características:
+- Herdam de `RuntimeException` (nunca checadas)
+- Construtor que recebe a mensagem (`super(mensagem)`)
+- Construtor de conveniência que recebe ID e formata a mensagem (ex.: `new TarefaNaoEncontradaException(42L)` → `"Tarefa com ID 42 não encontrada"`)
+- Sem campos extras, sem lógica — exceções devem ser puras
+
+## 2. DTO de resposta de erro padronizado
+Classe `ErroResposta` (ou nome equivalente conforme `escopo-todo.md`) representando o JSON de erro que a API retornará.
+
+Campos mínimos (conferir e ajustar conforme `escopo-todo.md`):
+- `timestamp` (`LocalDateTime`)
+- `status` (`int`) — código HTTP
+- `erro` (`String`) — descrição curta (ex.: `"Não encontrado"`, `"Requisição inválida"`)
+- `mensagem` (`String`) — detalhe específico do erro
+- `caminho` (`String`) — path da requisição que falhou
+
+Características:
+- Pacote: `excecao` ou `dto.erro` conforme `escopo-todo.md` definir
+- Construtor com todos os campos + construtor sem argumentos (para serialização)
+- Getters (sem setters, ou apenas se necessário para o framework de serialização)
+- Não usar Lombok salvo se já estiver declarado no projeto
+
+# Decisões técnicas
+- **Pacotes**: respeitar exatamente o que está em `escopo-todo.md`/`CLAUDE.md`. Se o escopo diz `excecao`, é `excecao`, não `exception`
+- **Imports**: sem wildcard
+- **JavaDoc**: curto e em português, apenas em classes públicas e métodos não-óbvios
+- **Mensagens em português**: `"Tarefa com ID %d não encontrada"`, etc. Acentuação correta, sem abreviações
+
+# Critérios de "pronto"
+- [ ] Código compila (`./mvnw compile`) sem erros e sem warnings novos
+- [ ] Aplicação ainda sobe (`./mvnw spring-boot:run`) e `/actuator/health` continua respondendo
+- [ ] `CLAUDE.md` atualizado com a seção `## Idioma do código`
+- [ ] Estrutura de pacotes e nomes batem com `escopo-todo.md`
+- [ ] `docs/backlog.md` atualizado: itens cobertos marcados `[x]`
+- [ ] Nenhuma exceção customizada criada além das que o escopo prevê
+
+# Restrições
+- NÃO criar `@RestControllerAdvice` ou handler global
+- NÃO criar repository, service, controller
+- NÃO adicionar dependência no `pom.xml`
+- NÃO alterar `application.properties`, `escopo-todo.md` ou `docs/diagramas.md`
+- Se algo no `escopo-todo.md` contradiz este prompt, **escopo ganha** — sinalizar a divergência
+
+# Resposta esperada
+1. Lista de arquivos criados/alterados com caminho relativo
+2. IDs do backlog marcados como `[x]`
+3. Trecho exato adicionado ao `CLAUDE.md` (seção `## Idioma do código`)
+4. Comando para validar localmente (compilar e subir)
+5. Eventuais divergências entre docs e como resolveu (ou se parou pra perguntar)
