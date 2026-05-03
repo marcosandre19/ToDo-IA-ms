@@ -28,6 +28,8 @@ Setup: Maven Wrapper (`./mvnw`), `TarefasApplication` em `com.toDo.tarefas`, H2 
 
 **Exceção pontual — DTO de resposta de erro (`ErroResponse`)**: campos seguem o contrato JSON do escopo §6 em inglês (`timestamp`, `status`, `error`, `message`, `path`), para serialização direta sem `@JsonProperty`. Os **valores** desses campos (mensagens, descrições) permanecem em pt-BR.
 
+**Testes**: nomes de método de teste em pt-BR **sem acentos** (ex.: `deveCriarTarefaComSucesso`) — Java aceita acentos mas geram ruído em logs e ferramentas. `@DisplayName` com acentos é bem-vindo para legibilidade nos relatórios.
+
 ## Modo de trabalho
 Desenvolvimento incremental por fases. Cada fase deve ser revisada antes da próxima começar.
 A especificação técnica completa está em `escopo-todo.md`.

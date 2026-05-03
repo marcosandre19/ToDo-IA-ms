@@ -173,21 +173,22 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] Logs visíveis no console ao executar `spring-boot:run`
 
 - [ ] **RT-007** — Testes unitários do `TarefaService`
-  - [ ] Arquivo `service/TarefaServiceTest.java` com JUnit 5 + Mockito
-  - [ ] Cobre: criar, listar (com e sem filtros), buscarPorId (encontrado e não encontrado), atualizar, atualizarStatus, remover
-  - [ ] Verifica que `TarefaNaoEncontradaException` é lançada para id inexistente
-  - [ ] `./mvnw test` executa esses testes com 100% de aprovação
+  - [x] Arquivo `service/TarefaServiceTest.java` com JUnit 5 + Mockito
+  - [x] Cobre: criar (3 cenários), listar (4 cenários: vazia, sem filtros, status, prioridade, ambos), buscarPorId (encontrado e não encontrado), atualizar (preservação de criadoEm, status nulo, prioridade nula, id inexistente), remover (sucesso e id inexistente). `atualizarStatus` adiado para release 2 com `RF-007`.
+  - [x] Verifica que `TarefaNaoEncontradaException` é lançada para id inexistente em buscar/atualizar/remover
+  - [x] Verifica também `DadosInvalidosException` para regras de validação imperativa do service (status/prioridade nulos no PUT, dataVencimento no passado na criação)
+  - [x] `./mvnw test` executa esses testes com 100% de aprovação
 
 - [ ] **RT-008** — Testes do repositório com `@DataJpaTest`
   - [ ] Arquivo `repository/TarefaRepositoryTest.java`
   - [ ] Testa `save`, `findById`, `findAll` e o filtro por `status`/`prioridade`
   - [ ] Usa H2 em memória (perfil de teste isolado)
 
-- [ ] **RT-009** — Testes de integração de controller com `MockMvc`
-  - [ ] Arquivo `controller/TarefaControllerTest.java` com `@SpringBootTest` + `@AutoConfigureMockMvc`
-  - [ ] Cobre o ciclo completo: criar → listar → buscar → atualizar → atualizar status → remover
-  - [ ] Valida status codes, header `Location` no POST e estrutura de resposta de erro padronizada
-  - [ ] Pelo menos 1 teste para cada status code esperado na seção 4 do escopo
+- [x] **RT-009** — Testes de controller com `MockMvc`
+  - [x] Arquivo `controller/TarefaControllerTest.java` com **`@WebMvcTest(TarefaController.class)` + `@MockBean TarefaService`** (slice de web puro — não sobe contexto Spring inteiro nem usa banco real, isolamento por construção)
+  - [x] Cobre o ciclo: criar → listar → buscar → atualizar → remover (atualizar status fica para release 2 com `RF-007`)
+  - [x] Valida status codes, header `Location` no POST e estrutura de resposta de erro padronizada (`timestamp`, `status`, `error`, `message`, `path`, `errors[]`)
+  - [x] Pelo menos 1 teste para cada status code (201, 200, 204, 400 multi-camada, 404)
 
 - [ ] **RT-009.1** — Teste de fumaça do `/health`
   - [ ] Arquivo `HealthEndpointTest.java` com `@SpringBootTest` + `@AutoConfigureMockMvc`
