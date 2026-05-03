@@ -1,0 +1,147 @@
+# Contexto
+MVP de API REST em Spring Boot 2.7.x (Java 11) para gerenciar tarefas, código de domínio em pt-br. Documentos de referência:
+- `escopo-todo.md` — escopo técnico (endpoints, status codes, regras)
+- `docs/backlog.md` — backlog por release com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos (incluindo sequence diagrams de sucesso e erro)
+- `CLAUDE.md` — convenções (incluindo idioma pt-br)
+
+**Leia os quatro documentos antes de começar.** Se houver divergência, pare e me avise — não decida sozinho.
+
+Etapas concluídas:
+1. Conversão para Spring Boot ✅
+2. Enums + Entidades (`Tarefa.java`) ✅
+3. Exceções customizadas + DTO de erro ✅
+4. Repository (`TarefaRepository`) ✅
+5. Service (`TarefaService`) ✅
+
+Etapa atual: **camada de controller + DTOs + handler global de exceções**.
+
+Esta é a etapa em que a API fica testável ponta a ponta. Após esta etapa eu devo conseguir fazer `curl` em todos os endpoints e receber respostas corretas.
+
+Próximas etapas (não fazer agora): testes automatizados, documentação OpenAPI, ajustes finais.
+
+# Objetivo
+Implementar:
+1. **DTOs de request e response** para a entidade `Tarefa`
+2. **`TarefaController`** com os endpoints definidos no `escopo-todo.md`
+3. **`@RestControllerAdvice` global** tratando exceções de domínio e validação
+
+# Decisões técnicas (seguir exatamente)
+
+## DTOs
+
+### Estrutura
+- **Pacote**: conforme `escopo-todo.md`/`CLAUDE.md` (provavelmente `dto`)
+- **Dois DTOs principais**:
+  - `TarefaRequisicao` — entrada (POST e PUT). Sem `id`, sem `dataCriacao`, sem `dataAtualizacao`. Com Bean Validation
+  - `TarefaResposta` — saída. Com todos os campos da entidade incluindo `id` e timestamps
+- **Não criar DTOs separados para criar e atualizar** — uma única `TarefaRequisicao` serve para os dois (mais simples para MVP)
+
+### Bean Validation no `TarefaRequisicao`
+- Aplicar as anotações de validação **conforme as regras definidas em `escopo-todo.md`** (titulo obrigatório, tamanho máximo, status válido, etc.). Não inventar validações que o escopo não pede
+- Mensagens de erro em pt-br nas próprias anotações (ex.: `@NotBlank(message = "O título é obrigatório")`)
+- Usar `javax.validation.constraints.*` (Spring Boot 2.7.x)
+
+### Conversão entre DTO e entidade
+- Métodos estáticos nos próprios DTOs:
+  - `TarefaResposta.de(Tarefa tarefa)` — converte entidade para resposta
+  - `TarefaRequisicao#paraEntidade()` — converte requisição para entidade nova (uso no POST)
+  - `TarefaRequisicao#aplicarEm(Tarefa tarefa)` — copia campos para entidade existente (uso no PUT)
+- **NÃO usar MapStruct, ModelMapper ou qualquer biblioteca de mapeamento** — método estático é suficiente para MVP
+
+### Estilo dos DTOs
+- Construtor sem argumentos (exigido por Jackson para desserialização) + construtor com todos os campos
+- Getters; setters apenas se Jackson exigir (geralmente não exige se houver construtor + getters)
+- Sem Lombok salvo se já declarado no projeto
+
+## Controller
+
+### Estrutura
+- **Classe**: `TarefaController`
+- **Pacote**: conforme `escopo-todo.md`/`CLAUDE.md` (provavelmente `controlador`)
+- **Anotações**: `@RestController`, `@RequestMapping("/tarefas")` (ou o path que `escopo-todo.md` definir, incluindo eventual prefixo de versionamento)
+- **Injeção de dependência**: por **construtor**, campo `final`
+- Sem `@Autowired` em campo
+
+### Endpoints (conferir e ajustar conforme `escopo-todo.md`)
+
+| Método | Path | Status sucesso | Body request | Body response |
+|--------|------|----------------|--------------|---------------|
+| `POST` | `/tarefas` | `201 Created` + header `Location` | `TarefaRequisicao` (com `@Valid`) | `TarefaResposta` |
+| `GET` | `/tarefas` | `200 OK` | — | `List<TarefaResposta>` |
+| `GET` | `/tarefas/{id}` | `200 OK` | — | `TarefaResposta` |
+| `PUT` | `/tarefas/{id}` | `200 OK` | `TarefaRequisicao` (com `@Valid`) | `TarefaResposta` |
+| `DELETE` | `/tarefas/{id}` | `204 No Content` | — | — |
+
+### Detalhes obrigatórios
+- **`@Valid` em todos os `@RequestBody`** — sem isso, Bean Validation não dispara
+- **POST**: retornar `ResponseEntity.created(uri).body(resposta)` onde `uri` é construída via `ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(tarefa.getId()).toUri()` — o header `Location` apontando para o recurso criado é parte do contrato REST
+- **DELETE**: retornar `ResponseEntity.noContent().build()` (status 204, sem body)
+- **GET por ID, PUT, DELETE**: confiar que o service lança `TarefaNaoEncontradaException` quando o ID não existe — o handler global cuida do 404. Não fazer `try/catch` no controller
+- **Não fazer lógica de negócio no controller** — controller só orquestra: recebe DTO, converte, chama service, converte resposta, retorna
+- **Não capturar exceções no controller** — deixar propagar para o handler global
+
+### Estilo
+- JavaDoc curto em pt-br nos métodos públicos
+- Imports sem wildcard
+
+## Handler global de exceções
+
+### Estrutura
+- **Classe**: `ManipuladorGlobalExcecoes` (ou nome equivalente conforme `escopo-todo.md`/convenção)
+- **Pacote**: `excecao` (mesmo das exceções customizadas)
+- **Anotação**: `@RestControllerAdvice`
+
+### Exceções tratadas (mínimo)
+
+| Exceção | Status HTTP | Comportamento |
+|---------|-------------|---------------|
+| `TarefaNaoEncontradaException` | `404 Not Found` | Retorna `ErroResposta` com a mensagem da exceção |
+| `MethodArgumentNotValidException` | `400 Bad Request` | Retorna `ErroResposta` com **lista de erros por campo** (campo → mensagem) |
+| `Exception` (catch-all) | `500 Internal Server Error` | Retorna `ErroResposta` genérico (`"Erro interno do servidor"`). NÃO expor `exception.getMessage()` aqui — vaza informação. Logar a exceção completa via SLF4J |
+
+### Detalhes
+- Cada handler usa `@ExceptionHandler(TipoExcecao.class)` e retorna `ResponseEntity<ErroResposta>`
+- Para `MethodArgumentNotValidException`: usar `ex.getBindingResult().getFieldErrors()` para extrair `campo → defaultMessage`. Se o `ErroResposta` ainda não tem campo para detalhes por campo, **estender** o DTO adicionando um campo opcional `Map<String, String> camposComErro` (atualizar `escopo-todo.md` se necessário — sinalizar a alteração na resposta)
+- O `caminho` do `ErroResposta` deve vir do `HttpServletRequest` (parâmetro do método handler)
+- O `timestamp` é `LocalDateTime.now()`
+
+### Logging
+- Usar SLF4J (`private static final Logger logger = LoggerFactory.getLogger(...)`)
+- Logar em nível `WARN` para 4xx e `ERROR` para 5xx (com stack trace completa no caso de 500)
+
+# Critérios de "pronto"
+- [ ] Código compila sem warnings novos
+- [ ] Aplicação sobe e `/actuator/health` continua respondendo
+- [ ] `POST /tarefas` com payload válido retorna `201`, body com a tarefa criada (incluindo `id` e `dataCriacao`), e header `Location: /tarefas/{id}`
+- [ ] `POST /tarefas` com payload inválido (ex.: titulo vazio) retorna `400` com `ErroResposta` listando os erros por campo
+- [ ] `GET /tarefas` retorna `200` com lista (vazia ou com tarefas)
+- [ ] `GET /tarefas/{id}` retorna `200` com a tarefa, ou `404` com `ErroResposta` se não existir
+- [ ] `PUT /tarefas/{id}` atualiza a tarefa, retorna `200` com a versão atualizada, e **preserva o `dataCriacao` original** (verificar manualmente)
+- [ ] `PUT /tarefas/{id}` com ID inexistente retorna `404`
+- [ ] `DELETE /tarefas/{id}` retorna `204` (sem body); com ID inexistente retorna `404`
+- [ ] Nenhum endpoint retorna `500` por situações previsíveis (ID não encontrado, validação) — apenas para erros realmente inesperados
+- [ ] `docs/backlog.md` atualizado: itens cobertos marcados `[x]`
+
+# Restrições
+- NÃO criar testes (etapa separada)
+- NÃO adicionar dependências no `pom.xml`
+- NÃO usar MapStruct, ModelMapper, Lombok (salvo se já declarado), bibliotecas de mapeamento
+- NÃO criar paginação se o escopo não pede
+- NÃO criar endpoints além dos que `escopo-todo.md` define
+- NÃO fazer lógica de negócio no controller (só orquestração)
+- NÃO capturar exceções no controller (deixar propagar para o handler global)
+- Se algo no escopo contradiz este prompt, **escopo ganha** — sinalizar a divergência
+
+# Resposta esperada
+1. Lista de arquivos criados/alterados com caminho relativo, agrupados por: DTOs, controller, handler global
+2. IDs do backlog marcados como `[x]`
+3. Comandos `curl` exatos para testar cada endpoint, na seguinte ordem:
+   - `POST /tarefas` com payload válido (esperando `201` + Location)
+   - `POST /tarefas` com payload inválido (esperando `400` com erros por campo)
+   - `GET /tarefas` (esperando `200` com a tarefa criada na lista)
+   - `GET /tarefas/{id}` válido e inválido (esperando `200` e `404`)
+   - `PUT /tarefas/{id}` válido e inválido
+   - `DELETE /tarefas/{id}` válido e inválido
+4. Eventual extensão do `ErroResposta` (se foi necessário adicionar campo para erros por campo) e justificativa
+5. Eventuais divergências entre docs e como resolveu (ou se parou pra perguntar)
