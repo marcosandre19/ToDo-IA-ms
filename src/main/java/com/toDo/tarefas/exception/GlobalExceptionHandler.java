@@ -13,8 +13,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolationException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -98,6 +100,46 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(corpo);
     }
 
+    @ExceptionHandler(DadosInvalidosException.class)
+    public ResponseEntity<ErroResponse> tratarDadosInvalidos(
+            DadosInvalidosException ex,
+            HttpServletRequest request) {
+        List<ErroCampo> errors = Collections.singletonList(
+                new ErroCampo(ex.getCampo(), ex.getMessage()));
+        logger.warn("Regra de negócio violada em {}: campo '{}' — {}",
+                request.getRequestURI(), ex.getCampo(), ex.getMessage());
+        ErroResponse corpo = new ErroResponse(
+                OffsetDateTime.now(ZoneOffset.UTC),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "Erro de validação",
+                request.getRequestURI(),
+                errors
+        );
+        return ResponseEntity.badRequest().body(corpo);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErroResponse> tratarConstraintViolation(
+            ConstraintViolationException ex,
+            HttpServletRequest request) {
+        List<ErroCampo> errors = ex.getConstraintViolations().stream()
+                .map(cv -> new ErroCampo(extrairUltimoNo(cv.getPropertyPath().toString()),
+                        cv.getMessage()))
+                .collect(Collectors.toList());
+        logger.warn("Violação de constraint em {}: {} parâmetro(s) inválido(s)",
+                request.getRequestURI(), errors.size());
+        ErroResponse corpo = new ErroResponse(
+                OffsetDateTime.now(ZoneOffset.UTC),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "Erro de validação",
+                request.getRequestURI(),
+                errors
+        );
+        return ResponseEntity.badRequest().body(corpo);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroResponse> tratarFallback(
             Exception ex,
@@ -111,5 +153,14 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(corpo);
+    }
+
+    /**
+     * Extrai o último segmento de um property path (ex.: "buscarPorId.id" -> "id").
+     * Constraints em parâmetros de método chegam com o nome qualificado pelo método.
+     */
+    private static String extrairUltimoNo(String propertyPath) {
+        int ponto = propertyPath.lastIndexOf('.');
+        return ponto >= 0 ? propertyPath.substring(ponto + 1) : propertyPath;
     }
 }
