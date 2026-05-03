@@ -85,10 +85,10 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [x] Outros endpoints do actuator (`/info`, `/metrics`, etc.) **não** são expostos no MVP (`exposure.include=health`)
 
 - [ ] **RF-009** — Camada de serviço `TarefaService` e DTOs
-  - [ ] `dto.TarefaRequest`, `dto.TarefaResponse`, `dto.AtualizarStatusRequest` criados
-  - [ ] `service.TarefaService` com métodos `criar`, `listar(filtros)`, `buscarPorId`, `atualizar`, `atualizarStatus`, `remover`
-  - [ ] Mapeamento entidade ↔ DTO manual (sem MapStruct)
-  - [ ] Controller nunca expõe a entidade `Tarefa` diretamente
+  - [x] `dto.TarefaRequest`, `dto.TarefaResponse`, `dto.AtualizarStatusRequest` criados (este último ainda sem método consumidor — `atualizarStatus` é release 2)
+  - [x] `service.TarefaService` com métodos `criar`, `listar(filtros)`, `buscarPorId`, `atualizar`, `remover` (`atualizarStatus` adiado para release 2 junto com `RF-007`)
+  - [x] Mapeamento entidade ↔ DTO manual via helpers `toResponse` e setters explícitos no `TarefaService` (sem MapStruct)
+  - [ ] Controller nunca expõe a entidade `Tarefa` diretamente (validável apenas quando o controller existir)
 
 ---
 
