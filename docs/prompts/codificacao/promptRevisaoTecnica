@@ -1,0 +1,5 @@
+Revise os arquivos do core da API e responda:
+1. quais pontos de acoplamento estão altos?
+2. Onde faltam validações?
+3. quais os testes devo priorizar na proxima release?
+responda em checklist
