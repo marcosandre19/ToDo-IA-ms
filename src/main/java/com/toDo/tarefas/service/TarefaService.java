@@ -5,12 +5,15 @@ import com.toDo.tarefas.dto.TarefaResponse;
 import com.toDo.tarefas.entity.Tarefa;
 import com.toDo.tarefas.entity.enums.Prioridade;
 import com.toDo.tarefas.entity.enums.StatusTarefa;
+import com.toDo.tarefas.exception.DadosInvalidosException;
 import com.toDo.tarefas.exception.TarefaNaoEncontradaException;
 import com.toDo.tarefas.repository.TarefaRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 public class TarefaService {
 
     private static final Sort ORDENACAO_DEFAULT = Sort.by(Sort.Direction.DESC, "criadoEm");
+    private static final ZoneId ZONA_USUARIO = ZoneId.of("America/Sao_Paulo");
 
     private final TarefaRepository tarefaRepository;
 
@@ -39,6 +43,7 @@ public class TarefaService {
      */
     @Transactional
     public TarefaResponse criar(TarefaRequest request) {
+        validarDataVencimentoNaCriacao(request.getDataVencimento());
         Tarefa nova = new Tarefa();
         nova.setTitulo(request.getTitulo());
         nova.setDescricao(request.getDescricao());
@@ -89,6 +94,12 @@ public class TarefaService {
      */
     @Transactional
     public TarefaResponse atualizar(Long id, TarefaRequest request) {
+        if (request.getStatus() == null) {
+            throw new DadosInvalidosException("status", "não deve ser nulo");
+        }
+        if (request.getPrioridade() == null) {
+            throw new DadosInvalidosException("prioridade", "não deve ser nulo");
+        }
         Tarefa existente = buscarEntidade(id);
         existente.setTitulo(request.getTitulo());
         existente.setDescricao(request.getDescricao());
@@ -117,6 +128,22 @@ public class TarefaService {
     private Tarefa buscarEntidade(Long id) {
         return tarefaRepository.findById(id)
                 .orElseThrow(() -> new TarefaNaoEncontradaException(id));
+    }
+
+    /**
+     * Aplica a regra 5 do escopo §5: na criação, {@code dataVencimento} (se
+     * presente) não pode ser anterior à data atual em {@code America/Sao_Paulo}.
+     * No PUT, datas passadas são aceitas — por isso a regra mora no service de
+     * {@code criar} e não na entidade.
+     */
+    private void validarDataVencimentoNaCriacao(LocalDate dataVencimento) {
+        if (dataVencimento == null) {
+            return;
+        }
+        LocalDate hoje = LocalDate.now(ZONA_USUARIO);
+        if (dataVencimento.isBefore(hoje)) {
+            throw new DadosInvalidosException("dataVencimento", "deve ser hoje ou no futuro");
+        }
     }
 
     private TarefaResponse toResponse(Tarefa tarefa) {
