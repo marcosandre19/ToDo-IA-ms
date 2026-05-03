@@ -1,0 +1,121 @@
+# Contexto
+MVP de API REST em Spring Boot 2.7.x (Java 11) para gerenciar tarefas, código de domínio em pt-br. Documentos de referência:
+- `escopo-todo.md` — escopo técnico (regras de negócio, modelo, endpoints)
+- `docs/backlog.md` — backlog por release com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos
+- `CLAUDE.md` — convenções (incluindo seção sobre idioma pt-br)
+
+**Leia os quatro documentos antes de começar.** Se houver divergência, pare e me avise — não decida sozinho.
+
+Etapas concluídas:
+1. Conversão para Spring Boot ✅
+2. Enums + Entidades (`Tarefa.java`) ✅
+3. Exceções customizadas + DTO de erro ✅
+4. Repository (`TarefaRepository`) ✅
+
+Etapa atual: **camada de service** (regras de negócio).
+
+Próximas etapas (não fazer agora): controller + handler global, testes.
+
+# Objetivo
+Implementar a camada de service com as operações de negócio definidas no `escopo-todo.md`, tipicamente para um CRUD:
+- Criar tarefa
+- Atualizar tarefa (substituição total)
+- Buscar tarefa por ID
+- Listar tarefas (todas, ou conforme filtros que o escopo definir)
+- Apagar tarefa
+
+Confirme a lista exata consultando `escopo-todo.md` — se diferir, escopo ganha.
+
+# Decisões técnicas (seguir exatamente)
+
+## Estrutura
+- **Sem interface separada**: classe concreta `TarefaService` direto, anotada com `@Service`
+- **Pacote**: conforme `escopo-todo.md`/`CLAUDE.md` (provavelmente `servico`)
+- **Injeção de dependência**: por **construtor** (não usar `@Autowired` em campo, não usar setter injection). Construtor único permite o Spring injetar automaticamente sem anotação
+- **Campos do repository**: `private final TarefaRepository tarefaRepository`
+
+## Transações
+- `@Transactional(readOnly = true)` na **classe** (default seguro para leitura)
+- `@Transactional` (sem `readOnly`, ou seja, escrita) nos métodos que **modificam** estado: criar, atualizar, apagar
+- Métodos de leitura (buscar, listar) herdam o `readOnly` da classe — não precisa anotar de novo
+- Importar `org.springframework.transaction.annotation.Transactional` (NÃO `javax.transaction.Transactional` — comportamento diferente)
+
+## Tipos de retorno e parâmetros
+- Service retorna **entidade `Tarefa`**, `List<Tarefa>` ou `void`
+- **NÃO retornar `Optional`** — o controller precisa de 404 padronizado, e quem decide isso é o service via exception
+- **NÃO criar DTOs nesta etapa** — DTOs de request/response são responsabilidade do controller (etapa seguinte). Service trabalha com entidades
+- Service recebe parâmetros como entidade ou tipos primitivos (`Long id`, `Tarefa novosDados`)
+
+## Operações
+
+### Criar
+- Assinatura: `public Tarefa criar(Tarefa tarefa)` (ajuste o nome conforme convenção do escopo)
+- Recebe uma `Tarefa` sem ID e sem timestamps preenchidos
+- Persiste via `tarefaRepository.save(...)`
+- Retorna a `Tarefa` salva (com ID e `dataCriacao` populados pelo `@PrePersist`)
+- Não validar manualmente campos obrigatórios — Bean Validation já cuida disso na entrada do controller na próxima etapa
+
+### Atualizar (substituição total — PUT)
+- Assinatura: `public Tarefa atualizar(Long id, Tarefa novosDados)`
+- Busca a entidade existente via `findById`; se não encontrar, lança `TarefaNaoEncontradaException`
+- **Copia os campos atualizáveis** da `novosDados` para a entidade gerenciada — NÃO fazer `save` num objeto novo com mesmo ID (isso quebra o `dataCriacao` original e é antipattern)
+- **Não copiar**: `id`, `dataCriacao`
+- **Copiar**: campos de domínio conforme a entidade `Tarefa` (titulo, descricao, status, etc.)
+- O `@PreUpdate` da entidade cuida de atualizar `dataAtualizacao` automaticamente
+- O `save` final é opcional (entidade gerenciada dentro de transação faz dirty checking) — mas chamar `repository.save(tarefa)` explicitamente é mais legível e seguro
+- Retorna a entidade atualizada
+
+### Buscar por ID
+- Assinatura: `public Tarefa buscarPorId(Long id)`
+- Usa `tarefaRepository.findById(id)` e `.orElseThrow(() -> new TarefaNaoEncontradaException(id))`
+- Retorna a `Tarefa` ou propaga a exceção
+
+### Listar
+- Assinatura: `public List<Tarefa> listar()` (sem parâmetros, ou conforme escopo)
+- Retorna `tarefaRepository.findAll()`
+- Se o escopo definir filtros (status, etc.), criar overload ou método específico — usar query method já declarado no `TarefaRepository`
+- **Se o escopo não menciona paginação, NÃO implementar paginação** nesta etapa (sem `Pageable`, sem `Page<Tarefa>`)
+
+### Apagar
+- Assinatura: `public void apagar(Long id)`
+- Verifica existência primeiro: `if (!tarefaRepository.existsById(id)) throw new TarefaNaoEncontradaException(id)`
+- Em seguida: `tarefaRepository.deleteById(id)`
+- Sem retorno
+
+## Estilo de código
+- Java 11 idiomático
+- JavaDoc curto e em pt-br nos métodos públicos descrevendo: o que faz, parâmetros relevantes, exceção lançada se houver. Não comentar o óbvio
+- Comentários internos em pt-br, apenas onde agregam valor
+- Imports sem wildcard
+- Sem `@Autowired` em campo, sem setter injection
+- Sem Lombok salvo se já estiver declarado no projeto
+- Ordem dos elementos na classe: campos → construtor → métodos públicos (na ordem do CRUD: criar, buscar, listar, atualizar, apagar) → métodos privados auxiliares se houver
+
+# Critérios de "pronto"
+- [ ] Código compila (`./mvnw compile`) sem warnings novos
+- [ ] Aplicação sobe (`./mvnw spring-boot:run`) e `/actuator/health` continua respondendo
+- [ ] `TarefaService` anotado com `@Service` e `@Transactional(readOnly = true)` na classe
+- [ ] Métodos de escrita (criar, atualizar, apagar) anotados com `@Transactional`
+- [ ] Injeção do repository por construtor, campo `final`
+- [ ] Update **preserva `dataCriacao`** (não cria entidade nova com mesmo ID)
+- [ ] Buscar/atualizar/apagar com ID inexistente lançam `TarefaNaoEncontradaException`
+- [ ] Nenhum DTO criado nesta etapa
+- [ ] Nenhuma operação extra além das que o `escopo-todo.md` define
+- [ ] `docs/backlog.md` atualizado: itens cobertos marcados `[x]`
+
+# Restrições
+- NÃO criar controller, `@RestControllerAdvice`, DTOs
+- NÃO criar testes (etapa separada)
+- NÃO adicionar dependências no `pom.xml`
+- NÃO alterar `application.properties`, `escopo-todo.md`, `docs/diagramas.md`, `CLAUDE.md`
+- NÃO adicionar regras de negócio que o escopo não pede ("validação extra por garantia", "log de auditoria", etc.)
+- Se algo no escopo contradiz este prompt, **escopo ganha** — sinalizar a divergência
+
+# Resposta esperada
+1. Lista de operações implementadas, casando 1-pra-1 com o que o `escopo-todo.md` exige (ex.: "criar → §RF-002, atualizar → §RF-003...")
+2. Lista de arquivos criados/alterados com caminho relativo
+3. IDs do backlog marcados como `[x]`
+4. Comandos para validar localmente: compilar e subir
+5. Como o método `atualizar` foi implementado (1-2 linhas confirmando que `dataCriacao` é preservada)
+6. Eventuais divergências entre docs e como resolveu (ou se parou pra perguntar)
