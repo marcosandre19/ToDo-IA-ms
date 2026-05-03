@@ -18,6 +18,16 @@ Setup: Maven Wrapper (`./mvnw`), `TarefasApplication` em `com.toDo.tarefas`, H2 
 - Validações via Bean Validation (`jakarta.validation` ou `javax.validation` conforme versão do Spring Boot)
 - Respostas de erro padronizadas (JSON com `timestamp`, `status`, `error`, `message`, `path`)
 
+## Idioma do código
+
+**Português brasileiro** para identificadores de domínio: nomes de classes, métodos, variáveis, campos, mensagens de erro, comentários e JavaDoc. Exemplos: `Tarefa`, `TarefaNaoEncontradaException`, `TarefaRepository`, `TarefaService`, `TarefaController`, `"Tarefa com ID 42 não encontrada"`.
+
+**Inglês** para:
+- Anotações de framework e palavras-chave Java (`@Entity`, `@Service`, `RuntimeException`, `findById`).
+- **Nomes de pacotes Java** (`entity`, `exception`, `dto`, `controller`, `service`, `repository`) — alinhado ao escopo §7 e ao pacote `entity` já estabelecido.
+
+**Exceção pontual — DTO de resposta de erro (`ErroResponse`)**: campos seguem o contrato JSON do escopo §6 em inglês (`timestamp`, `status`, `error`, `message`, `path`), para serialização direta sem `@JsonProperty`. Os **valores** desses campos (mensagens, descrições) permanecem em pt-BR.
+
 ## Modo de trabalho
 Desenvolvimento incremental por fases. Cada fase deve ser revisada antes da próxima começar.
 A especificação técnica completa está em `escopo-todo.md`.

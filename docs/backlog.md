@@ -162,7 +162,7 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] DTO `dto.ErroResponse` usado em todas as respostas
 
 - [ ] **RT-005** — Exceção customizada `TarefaNaoEncontradaException`
-  - [ ] Classe `exception.TarefaNaoEncontradaException extends RuntimeException`
+  - [x] Classe `exception.TarefaNaoEncontradaException extends RuntimeException`
   - [ ] Lançada pelo `TarefaService` em `buscarPorId`, `atualizar`, `atualizarStatus`, `remover` quando id não existe
 
 - [ ] **RT-006** — Logs nas operações de mutação
