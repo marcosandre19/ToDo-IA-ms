@@ -1,0 +1,79 @@
+# Contexto
+MVP de API REST em Spring Boot 2.7.x (Java 11) para gerenciar tarefas, código de domínio em pt-br. Documentos de referência:
+- `escopo-todo.md` — escopo técnico (modelo, regras, eventuais consultas necessárias)
+- `docs/backlog.md` — backlog por release com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos
+- `CLAUDE.md` — convenções (incluindo idioma pt-br)
+
+**Leia os quatro documentos antes de começar.** Se houver divergência, pare e me avise — não decida sozinho.
+
+Etapas concluídas:
+1. Conversão para Spring Boot ✅
+2. Enums + Entidades (`Tarefa.java`) ✅
+3. Exceções customizadas + DTO de erro ✅
+
+Etapa atual: **camada de repository**.
+
+Próximas etapas (não fazer agora): service, controller + handler global, testes.
+
+# Objetivo
+Implementar o repository da entidade `Tarefa` usando Spring Data JPA.
+
+# Decisões técnicas (seguir exatamente)
+
+## Estrutura
+- **Interface**, nunca classe (Spring Data gera a implementação em runtime)
+- **Nome**: `TarefaRepository`
+- **Pacote**: conforme `escopo-todo.md`/`CLAUDE.md` (provavelmente `repositorio`)
+- **Estende**: `JpaRepository<Tarefa, Long>` — engloba `CrudRepository` e `PagingAndSortingRepository` e adiciona métodos JPA-específicos
+- **Sem anotação `@Repository`**: redundante em interfaces que estendem `JpaRepository`, adiciona ruído visual
+- **Sem implementação concreta**: não criar `TarefaRepositoryImpl` salvo se o escopo exigir comportamento customizado impossível de declarar como query method
+
+## Métodos
+- **NÃO declarar métodos básicos do CRUD** (`save`, `findById`, `findAll`, `deleteById`, `existsById`) — já vêm do `JpaRepository`, redeclarar é poluição
+- **Declarar APENAS query methods que o escopo `escopo-todo.md` exigir explicitamente** (filtros, buscas específicas, contagens). Se o escopo não pede nenhum, a interface fica vazia — isso é correto
+- Query methods devem usar **derivação por nome** (`findByStatus`, `findByTituloContainingIgnoreCase`, `countByStatus`, etc.). Não usar `@Query` nesta etapa
+- Nomes em pt-br para a parte do domínio (`findByStatus`, `findByTituloContendo`) — atenção: o **prefixo do método** (`findBy`, `countBy`, `existsBy`, `deleteBy`) é palavra-chave do Spring Data e fica em inglês; só o **nome dos campos** que entra em pt-br, e tem que **bater exatamente com o nome do atributo na entidade `Tarefa`**
+
+Exemplo (se o escopo pedir busca por status):
+```java
+List<Tarefa> findByStatus(StatusTarefa status);
+```
+
+O `findBy` é Spring Data; `Status` casa com o atributo `status` da entidade.
+
+## Estilo de código
+- Java 11 idiomático
+- JavaDoc curto e em pt-br **apenas** se o método tiver comportamento não-óbvio. Query methods derivados não precisam de JavaDoc — o nome já é a documentação
+- Imports sem wildcard
+
+# Pré-execução
+Antes de criar o repository, listar no chat:
+1. Quais consultas o `escopo-todo.md` define como necessárias (citar seção/trecho)
+2. Para cada consulta: o nome do query method correspondente e o tipo de retorno
+
+Se a resposta for "nenhuma consulta customizada exigida pelo escopo", confirmar isso explicitamente — repository vai ficar como interface vazia estendendo `JpaRepository`, e está correto assim.
+
+# Critérios de "pronto"
+- [ ] Código compila (`./mvnw compile`) sem warnings novos
+- [ ] Aplicação sobe (`./mvnw spring-boot:run`) e `/actuator/health` continua respondendo
+- [ ] Hibernate continua criando o schema sem erro no boot
+- [ ] Interface `TarefaRepository` estende `JpaRepository<Tarefa, Long>`
+- [ ] Apenas query methods exigidos pelo escopo foram declarados; nenhum a mais
+- [ ] Nenhum método do CRUD básico foi redeclarado
+- [ ] `docs/backlog.md` atualizado: itens cobertos marcados `[x]`
+
+# Restrições
+- NÃO criar service, controller, DTOs, testes
+- NÃO usar `@Query` (queries customizadas) nesta etapa
+- NÃO criar `TarefaRepositoryImpl` ou interfaces auxiliares
+- NÃO adicionar dependências no `pom.xml`
+- NÃO alterar `application.properties`, `escopo-todo.md`, `docs/diagramas.md`, `CLAUDE.md`
+- Se algo no escopo contradiz este prompt, **escopo ganha** — sinalizar a divergência
+
+# Resposta esperada
+1. Resumo da pré-execução: quais consultas o escopo exige (com citação) e os query methods correspondentes
+2. Lista de arquivos criados/alterados com caminho relativo
+3. IDs do backlog marcados como `[x]`
+4. Comandos para validar localmente: compilar e subir
+5. Eventuais divergências entre docs e como resolveu (ou se parou pra perguntar)
