@@ -74,6 +74,13 @@ cd ToDo-IA-ms
 
 A pasta `data/` é criada automaticamente na primeira execução com o arquivo `tarefas.mv.db` (H2).
 
+Para gerar um JAR executável (útil para distribuição ou execução fora do Maven):
+
+```bash
+./mvnw clean package
+java -jar target/tarefas-0.0.1-SNAPSHOT.jar
+```
+
 ## Execução
 
 ```bash
@@ -336,3 +343,11 @@ Todo código foi revisado e validado manualmente; o histórico de commits reflet
 6. Migração para PostgreSQL em ambiente produtivo
 7. Autenticação (Spring Security + JWT)
 8. CI/CD (GitHub Actions com `./mvnw test` em cada PR)
+
+## Documentação adicional
+
+- [`docs/escopo-todo.md`](docs/escopo-todo.md) — escopo técnico, modelo de dados, regras de negócio
+- [`docs/backlog.md`](docs/backlog.md) — backlog por release com IDs RF/RT e critérios de aceite
+- [`docs/diagramas.md`](docs/diagramas.md) — arquitetura em camadas, fluxos de sucesso/erro, diagrama de estados
+- [`CLAUDE.md`](CLAUDE.md) — convenções (idioma, pacotes, idioma do código)
+- [`docs/postman/tarefas.postman_collection.json`](docs/postman/tarefas.postman_collection.json) — Postman Collection com cenários de teste manual
