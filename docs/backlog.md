@@ -43,10 +43,10 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [x] `criadoEm` e `atualizadoEm` populados automaticamente via `@PrePersist` / `@PreUpdate` (em UTC, `OffsetDateTime`)
   - [x] Tabela `tarefas` é criada no H2 com as colunas e tipos da seção 3
 
-- [ ] **RF-002** — Repositório JPA `TarefaRepository`
-  - [ ] Interface `repository.TarefaRepository extends JpaRepository<Tarefa, Long>`
-  - [ ] Suporte a filtro por `status` e `prioridade` (via query method ou `Specification`)
-  - [ ] `save`, `findById`, `findAll`, `deleteById` operam sem erro contra o H2
+- [x] **RF-002** — Repositório JPA `TarefaRepository`
+  - [x] Interface `repository.TarefaRepository extends JpaRepository<Tarefa, Long>`
+  - [x] Suporte a filtro por `status` e `prioridade` via query methods derivados (`findByStatus`, `findByPrioridade`, `findByStatusAndPrioridade`)
+  - [x] `save`, `findById`, `findAll`, `deleteById` operam sem erro contra o H2 (herdados de `JpaRepository`, sem redeclaração)
 
 - [ ] **RF-003** — Endpoint `POST /api/tarefas` (criação)
   - [ ] Aceita JSON conforme exemplo 4.1 do escopo
