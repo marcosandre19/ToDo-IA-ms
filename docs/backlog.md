@@ -205,17 +205,18 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
 
 ### Requisitos técnicos
 
-- [ ] **RT-010** — Integração OpenAPI/Swagger
-  - [ ] Dependência `springdoc-openapi-ui` (versão compatível com Spring Boot 2.7.x, ex.: `1.7.0`) adicionada ao `pom.xml`
-  - [ ] Swagger UI acessível em `/swagger-ui.html` com a aplicação rodando
-  - [ ] Spec OpenAPI JSON disponível em `/v3/api-docs`
-  - [ ] Todos os 6 endpoints CRUD e o `GET /health` aparecem documentados com método, path, parâmetros e schemas de request/response
+- [x] **RT-010** — Integração OpenAPI/Swagger
+  - [x] Dependência `springdoc-openapi-ui:1.7.0` adicionada ao `pom.xml`
+  - [x] Swagger UI acessível em `/swagger-ui.html` com a aplicação rodando
+  - [x] Spec OpenAPI JSON disponível em `/v3/api-docs`
+  - [x] Os 5 endpoints CRUD documentados com método, path, parâmetros e schemas. `GET /health` é actuator e fica fora da documentação (`show-actuator=false`). `PATCH /api/tarefas/{id}/status` documentado quando `RF-007` for entregue na release 2.
 
-- [ ] **RT-011** — Anotações de documentação nos controllers e DTOs
-  - [ ] `TarefaController` anotado com `@Tag(name = "Tarefas", description = ...)`
-  - [ ] Cada endpoint anotado com `@Operation(summary = ..., description = ...)` e `@ApiResponses` listando os status codes
-  - [ ] DTOs com `@Schema` em campos relevantes (descrição, exemplo)
-  - [ ] Exemplos de payload visíveis no Swagger UI batem com os exemplos da seção 4 do escopo
+- [x] **RT-011** — Anotações de documentação nos controllers e DTOs
+  - [x] `TarefaController` anotado com `@Tag(name = "Tarefas", description = "Operações de gerenciamento de tarefas")`
+  - [x] Cada endpoint anotado com `@Operation(summary = ...)` e `@ApiResponses` listando os status codes (4xx referencia `ErroResponse.class`)
+  - [x] DTOs (`TarefaRequest`, `TarefaResponse`, `AtualizarStatusRequest`, `ErroResponse`, `ErroCampo`) com `@Schema(description, example)` em todos os campos
+  - [x] Exemplos batem com escopo §4 (titulo "Revisar pull request #42", dataVencimento "2026-12-31", criadoEm com offset `Z` etc.)
+  - [x] Bean `OpenApiConfig` em `config/` define title, description e version no cabeçalho da UI
 
 - [ ] **RT-012** — Separação em profiles `dev` e `prod`
   - [ ] `application.properties` contém apenas configs comuns
@@ -251,10 +252,9 @@ Lacunas ou ambiguidades identificadas no `escopo-todo.md` que precisam ser decid
 2. **Validação de `dataVencimento` no `PUT`** — escopo restringe a regra "≥ hoje" apenas à criação (regra 5 da seção 5). Confirmar que `PUT` realmente aceita datas passadas.
 3. **Comportamento do filtro com valor inválido** — regra 10 diz que valores inválidos retornam `400`, mas isso depende de o parâmetro chegar tipado (enum) ou string. Decidir se o binding de query param será via enum (gera 400 automático) ou string (validação manual).
 4. **Profiles `dev` e `prod` não estão no escopo** — incluídos no Release 3 por boa prática de entrega; se não forem desejados, remover RT-012.
-5. **OpenAPI/Swagger não está no escopo** — incluído no Release 3 conforme instrução do prompt de planejamento; confirmar se a dependência `springdoc-openapi-ui` deve ser formalizada na seção 2 do escopo.
-6. **README não consta na seção 7 do escopo** — `escopo-todo.md` menciona README curto apenas na Fase 5; Release 3 trata como entregável formal (RT-013).
-7. **Política de CORS** — escopo é silente. Se um frontend for consumir a API em outro host/porta, será necessário configurar `@CrossOrigin` ou `WebMvcConfigurer`. Não incluído em nenhuma release.
-8. **Auditoria/soft delete** — escopo define `DELETE` como remoção física. Confirmar que não há requisito de soft delete.
+5. **README não consta na seção 7 do escopo** — `escopo-todo.md` menciona README curto apenas na Fase 5; Release 3 trata como entregável formal (RT-013).
+6. **Política de CORS** — escopo é silente. Se um frontend for consumir a API em outro host/porta, será necessário configurar `@CrossOrigin` ou `WebMvcConfigurer`. Não incluído em nenhuma release.
+7. **Auditoria/soft delete** — escopo define `DELETE` como remoção física. Confirmar que não há requisito de soft delete.
 
 ---
 

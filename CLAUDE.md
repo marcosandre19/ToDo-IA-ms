@@ -10,6 +10,7 @@
 ## Estado atual
 Projeto Spring Boot 2.7.18 funcional, sem código de domínio ainda.
 Setup: Maven Wrapper (`./mvnw`), `TarefasApplication` em `com.toDo.tarefas`, H2 em modo arquivo (`./data/tarefas.mv.db`), `/health` exposto via `spring-boot-starter-actuator` (remapeado de `/actuator/health`).
+Documentação OpenAPI 3 via `springdoc-openapi-ui` 1.7.0 — Swagger UI em `/swagger-ui.html`, JSON em `/v3/api-docs`.
 
 ## Convenções
 - Pacote base: `com.toDo.tarefas`

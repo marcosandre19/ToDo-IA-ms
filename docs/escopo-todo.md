@@ -15,6 +15,7 @@ Expor uma API REST em Spring Boot para CRUD de tarefas pessoais, com persistênc
 | `spring-boot-starter-actuator` | 2.7.18 | Endpoint `/health` com checagem automática de `DataSource` via `DataSourceHealthIndicator`. |
 | `com.h2database:h2` | 2.1.x (gerenciada) | Banco embarcado em modo arquivo; zero infra para o MVP. |
 | `spring-boot-starter-test` | 2.7.18 | JUnit 5, AssertJ, MockMvc para testes de unidade e integração. |
+| `springdoc-openapi-ui` | 1.7.0 | Documentação OpenAPI 3 e Swagger UI. Última 1.x compatível com Spring Boot 2.7.x; migrar para 2.x quando o projeto for para Spring Boot 3+. |
 | Maven Wrapper (`mvnw`) | — | Build reprodutível sem exigir Maven instalado. |
 
 > Spring Boot 2.7.x usa o namespace `javax.validation` (não `jakarta.validation`).
@@ -67,6 +68,13 @@ management.endpoints.web.base-path=/
 management.endpoints.web.path-mapping.health=health
 management.endpoints.web.exposure.include=health
 management.endpoint.health.show-details=when_authorized
+
+# OpenAPI / Swagger (springdoc-openapi 1.7.0)
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.operations-sorter=method
+springdoc.swagger-ui.tags-sorter=alpha
+springdoc.show-actuator=false
 ```
 
 ## 3. Modelo de dados
