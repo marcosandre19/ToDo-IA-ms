@@ -43,7 +43,7 @@ flowchart TD
     TC -->|HTTP response JSON| Cliente
 
     Cliente -->|GET /health| HC
-    HC -->|isValid()| H2
+    HC -->|valida conexão| H2
     HC -->|HealthResponse JSON| Cliente
 
     DTO -.serializa.-> TC
