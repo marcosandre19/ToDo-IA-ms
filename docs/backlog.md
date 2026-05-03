@@ -114,29 +114,30 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] Id inexistente: retorna `404 Not Found`
   - [ ] Body sem `status` ou com valor inválido: retorna `400` (depende de `RF-012`)
 
-- [ ] **RF-010** — Validação de `titulo`
-  - [ ] `POST` e `PUT` com `titulo` ausente, vazio ou só whitespace: retornam `400` com mensagem `titulo: não pode ser vazio`
-  - [ ] `titulo` com mais de 120 caracteres: retorna `400` com mensagem indicando o limite
-  - [ ] `titulo` válido (1–120 chars após trim): aceito normalmente
+- [x] **RF-010** — Validação de `titulo`
+  - [x] `POST` e `PUT` com `titulo` ausente, vazio ou só whitespace: retornam `400` (via `@NotBlank` + trim no setter do DTO)
+  - [x] `titulo` com mais de 120 caracteres: retorna `400` (via `@Size(min=1, max=120)`)
+  - [x] `titulo` válido (1–120 chars após trim): aceito normalmente; trim aplicado no setter de `TarefaRequest`
 
-- [ ] **RF-011** — Validação de `descricao`
-  - [ ] `descricao` ausente ou `null`: aceita (campo opcional)
-  - [ ] `descricao` com mais de 1000 caracteres: retorna `400` com mensagem indicando o limite
+- [x] **RF-011** — Validação de `descricao`
+  - [x] `descricao` ausente ou `null`: aceita (campo opcional)
+  - [x] `descricao` com mais de 1000 caracteres: retorna `400` (via `@Size(max=1000)`)
 
 - [ ] **RF-012** — Validação de enums `status` e `prioridade`
   - [ ] Valor fora dos enums em `POST`/`PUT`/`PATCH`: retorna `400` com mensagem indicando os valores aceitos
   - [ ] Valor inválido em query param `?status=` ou `?prioridade=`: retorna `400`
 
-- [ ] **RF-013** — Validação de `dataVencimento`
-  - [ ] "Hoje" é calculado em `America/Sao_Paulo` (ver `escopo-todo.md` §3 "Contrato temporal")
-  - [ ] `dataVencimento` no passado em `POST`: retorna `400` com mensagem `deve ser hoje ou no futuro`
-  - [ ] `dataVencimento` igual a hoje ou futura: aceita
-  - [ ] `dataVencimento` ausente ou `null`: aceita
-  - [ ] Em `PUT`, datas passadas são aceitas (regra aplica-se apenas à criação)
+- [x] **RF-013** — Validação de `dataVencimento`
+  - [x] "Hoje" é calculado em `America/Sao_Paulo` (ver `escopo-todo.md` §3 "Contrato temporal")
+  - [x] `dataVencimento` no passado em `POST`: retorna `400` com mensagem `deve ser hoje ou no futuro`
+  - [x] `dataVencimento` igual a hoje ou futura: aceita
+  - [x] `dataVencimento` ausente ou `null`: aceita
+  - [x] Em `PUT`, datas passadas são aceitas (regra aplica-se apenas à criação)
 
-- [ ] **RF-014** — Validação de `id` em path
-  - [ ] `id` não numérico (ex.: `/api/tarefas/abc`): retorna `400`
-  - [ ] `id` numérico inexistente: retorna `404`
+- [x] **RF-014** — Validação de `id` em path
+  - [x] `id` não numérico (ex.: `/api/tarefas/abc`): retorna `400` (via `MethodArgumentTypeMismatchException`)
+  - [x] `id` numérico inexistente: retorna `404`
+  - [x] `id` zero ou negativo: retorna `400` via `@Min(1)` + `ConstraintViolationException`
 
 - [ ] **RF-015** — Resposta de erro padronizada (single-field)
   - [ ] Toda resposta de erro contém `timestamp`, `status`, `error`, `message`, `path`
@@ -153,7 +154,7 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
 - [ ] **RT-004** — `GlobalExceptionHandler` com `@RestControllerAdvice`
   - [x] Classe `exception.GlobalExceptionHandler` anotada com `@RestControllerAdvice`
   - [x] Handlers para `MethodArgumentNotValidException` → 400
-  - [ ] Handler para `ConstraintViolationException` → 400 (release 2 — usado em validação de query/path)
+  - [x] Handler para `ConstraintViolationException` → 400 (entregue antecipadamente para suportar `@Min(1)` em path vars do `RF-014`)
   - [x] Handler para `HttpMessageNotReadableException` → 400 (JSON malformado, enum inválido)
   - [x] Handler para `MethodArgumentTypeMismatchException` → 400
   - [x] Handler para `TarefaNaoEncontradaException` → 404
