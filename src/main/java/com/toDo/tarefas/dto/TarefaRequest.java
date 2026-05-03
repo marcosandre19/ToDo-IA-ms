@@ -37,7 +37,7 @@ public class TarefaRequest {
     }
 
     public void setTitulo(String titulo) {
-        this.titulo = titulo;
+        this.titulo = titulo == null ? null : titulo.trim();
     }
 
     public String getDescricao() {
@@ -45,7 +45,7 @@ public class TarefaRequest {
     }
 
     public void setDescricao(String descricao) {
-        this.descricao = descricao;
+        this.descricao = descricao == null ? null : descricao.trim();
     }
 
     public StatusTarefa getStatus() {

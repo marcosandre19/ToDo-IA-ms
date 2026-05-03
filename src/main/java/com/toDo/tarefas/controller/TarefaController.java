@@ -6,6 +6,7 @@ import com.toDo.tarefas.entity.enums.Prioridade;
 import com.toDo.tarefas.entity.enums.StatusTarefa;
 import com.toDo.tarefas.service.TarefaService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import java.net.URI;
 import java.util.List;
 
@@ -29,6 +31,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/tarefas")
+@Validated
 public class TarefaController {
 
     private final TarefaService tarefaService;
@@ -66,7 +69,8 @@ public class TarefaController {
      * Busca uma tarefa pelo id.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<TarefaResponse> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<TarefaResponse> buscarPorId(
+            @PathVariable @Min(value = 1, message = "deve ser positivo") Long id) {
         return ResponseEntity.ok(tarefaService.buscarPorId(id));
     }
 
@@ -75,7 +79,7 @@ public class TarefaController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<TarefaResponse> atualizar(
-            @PathVariable Long id,
+            @PathVariable @Min(value = 1, message = "deve ser positivo") Long id,
             @Valid @RequestBody TarefaRequest request) {
         return ResponseEntity.ok(tarefaService.atualizar(id, request));
     }
@@ -84,7 +88,8 @@ public class TarefaController {
      * Remove uma tarefa pelo id.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> remover(@PathVariable Long id) {
+    public ResponseEntity<Void> remover(
+            @PathVariable @Min(value = 1, message = "deve ser positivo") Long id) {
         tarefaService.remover(id);
         return ResponseEntity.noContent().build();
     }
