@@ -1,0 +1,457 @@
+{
+  "info": {
+    "name": "ToDo-IA-ms — Tarefas API",
+    "_postman_id": "a1b2c3d4-todo-ia-ms-tarefas-collection",
+    "description": "MVP de API REST de gerenciamento de tarefas (Spring Boot 2.7 / Java 11). Cobre os 5 endpoints de Tarefa e o /health do actuator, com cenários de sucesso, validação (400), recurso inexistente (404) e regressões. Ajustar a variável {{baseUrl}} conforme o ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "tarefaId", "value": "1", "description": "Capturado do POST de criação no caminho feliz" }
+  ],
+  "item": [
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "GET /health — esperado 200 {status:UP}",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "1. Caminho feliz — fluxo CRUD ponta a ponta",
+      "item": [
+        {
+          "name": "POST minimo (so titulo) — esperado 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('header Location presente', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/tarefas\\/\\d+$/));",
+                  "const body = pm.response.json();",
+                  "pm.test('id populado', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('status default PENDENTE', () => pm.expect(body.status).to.eql('PENDENTE'));",
+                  "pm.test('prioridade default MEDIA', () => pm.expect(body.prioridade).to.eql('MEDIA'));",
+                  "pm.collectionVariables.set('tarefaId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Comprar pao\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST completo — esperado 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('campos populados pelo servidor', () => {",
+                  "  pm.expect(body.id).to.be.a('number');",
+                  "  pm.expect(body.criadoEm).to.match(/Z$/);",
+                  "  pm.expect(body.atualizadoEm).to.match(/Z$/);",
+                  "});",
+                  "pm.collectionVariables.set('tarefaId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Revisar pull request #42\",\n  \"descricao\": \"Validar testes da camada de service e cobertura.\",\n  \"prioridade\": \"ALTA\",\n  \"dataVencimento\": \"2026-12-31\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "GET listar tudo — esperado 200 array",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "GET filtro status=PENDENTE — esperado 200",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas?status=PENDENTE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas"],
+              "query": [{ "key": "status", "value": "PENDENTE" }]
+            }
+          }
+        },
+        {
+          "name": "GET filtro prioridade=ALTA — esperado 200",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas?prioridade=ALTA",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas"],
+              "query": [{ "key": "prioridade", "value": "ALTA" }]
+            }
+          }
+        },
+        {
+          "name": "GET filtros combinados — esperado 200",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas?status=EM_ANDAMENTO&prioridade=ALTA",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas"],
+              "query": [
+                { "key": "status", "value": "EM_ANDAMENTO" },
+                { "key": "prioridade", "value": "ALTA" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET por id — esperado 200",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas/{{tarefaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas", "{{tarefaId}}"]
+            }
+          }
+        },
+        {
+          "name": "PUT atualiza tudo — esperado 200, criadoEm preservado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('atualizadoEm > criadoEm', () => {",
+                  "  pm.expect(new Date(body.atualizadoEm).getTime()).to.be.gte(new Date(body.criadoEm).getTime());",
+                  "});",
+                  "pm.test('titulo atualizado', () => pm.expect(body.titulo).to.include('atualizado'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Revisar pull request #42 (atualizado)\",\n  \"descricao\": \"Conferir tambem o changelog.\",\n  \"status\": \"EM_ANDAMENTO\",\n  \"prioridade\": \"ALTA\",\n  \"dataVencimento\": \"2026-05-12\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas/{{tarefaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas", "{{tarefaId}}"]
+            }
+          }
+        },
+        {
+          "name": "DELETE — esperado 204 sem body",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas/{{tarefaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas", "{{tarefaId}}"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "2. Validações 400 — Bean Validation no body",
+      "item": [
+        {
+          "name": "POST titulo vazio — esperado 400 errors[titulo]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST titulo so whitespace — esperado 400 (trim no setter)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"     \"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST titulo > 120 chars — esperado 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST descricao > 1000 chars — esperado 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"X\",\n  \"descricao\": \"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST status com valor invalido — esperado 400 (HttpMessageNotReadable)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"X\",\n  \"status\": \"FOO_BAR\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST JSON malformado — esperado 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ titulo: }" },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST dataVencimento no passado — esperado 400 errors[dataVencimento]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"X\",\n  \"dataVencimento\": \"2020-01-01\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "PUT sem status (PUT exige replacement completo) — esperado 400",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"X\",\n  \"prioridade\": \"ALTA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas/{{tarefaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas", "{{tarefaId}}"]
+            }
+          }
+        },
+        {
+          "name": "PUT sem prioridade — esperado 400",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"X\",\n  \"status\": \"PENDENTE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas/{{tarefaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas", "{{tarefaId}}"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "3. Validações 400 — path e query",
+      "item": [
+        {
+          "name": "GET filtro status=INVALIDO — esperado 400 type mismatch",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas?status=INVALIDO",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas"],
+              "query": [{ "key": "status", "value": "INVALIDO" }]
+            }
+          }
+        },
+        {
+          "name": "GET filtro prioridade=URGENTE — esperado 400",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tarefas?prioridade=URGENTE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tarefas"],
+              "query": [{ "key": "prioridade", "value": "URGENTE" }]
+            }
+          }
+        },
+        {
+          "name": "GET id=0 — esperado 400 @Min(1)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tarefas/0", "host": ["{{baseUrl}}"], "path": ["api", "tarefas", "0"] }
+          }
+        },
+        {
+          "name": "GET id=-5 — esperado 400 @Min(1)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tarefas/-5", "host": ["{{baseUrl}}"], "path": ["api", "tarefas", "-5"] }
+          }
+        },
+        {
+          "name": "GET id=abc — esperado 400 type mismatch",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tarefas/abc", "host": ["{{baseUrl}}"], "path": ["api", "tarefas", "abc"] }
+          }
+        },
+        {
+          "name": "DELETE id=-1 — esperado 400",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/tarefas/-1", "host": ["{{baseUrl}}"], "path": ["api", "tarefas", "-1"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4. 404 — recurso inexistente",
+      "item": [
+        {
+          "name": "GET id=9999 — esperado 404",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/tarefas/9999", "host": ["{{baseUrl}}"], "path": ["api", "tarefas", "9999"] }
+          }
+        },
+        {
+          "name": "PUT id=9999 — esperado 404",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"X\",\n  \"status\": \"PENDENTE\",\n  \"prioridade\": \"MEDIA\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas/9999", "host": ["{{baseUrl}}"], "path": ["api", "tarefas", "9999"] }
+          }
+        },
+        {
+          "name": "DELETE id=9999 — esperado 404",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/tarefas/9999", "host": ["{{baseUrl}}"], "path": ["api", "tarefas", "9999"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "5. Massa para popular o banco rapidamente",
+      "item": [
+        {
+          "name": "POST tarefa 1 — Estudar Spring Boot (PENDENTE/ALTA)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Estudar Spring Boot\",\n  \"descricao\": \"Revisar autoconfig, slices de teste e starter web.\",\n  \"prioridade\": \"ALTA\",\n  \"dataVencimento\": \"2026-06-30\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST tarefa 2 — Configurar CI (EM_ANDAMENTO/MEDIA)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Configurar CI no GitHub Actions\",\n  \"descricao\": \"Build + test em PR.\",\n  \"status\": \"EM_ANDAMENTO\",\n  \"prioridade\": \"MEDIA\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST tarefa 3 — Documentar API (PENDENTE/BAIXA, sem dataVencimento)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Documentar API com OpenAPI\",\n  \"prioridade\": \"BAIXA\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST tarefa 4 — Comprar mantimentos (CONCLUIDA/MEDIA)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Comprar mantimentos\",\n  \"descricao\": \"Mercado de bairro, lista anotada no celular.\",\n  \"status\": \"CONCLUIDA\",\n  \"prioridade\": \"MEDIA\",\n  \"dataVencimento\": \"2026-05-04\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        },
+        {
+          "name": "POST tarefa 5 — Consulta médica (CANCELADA/ALTA)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Consulta medica anual\",\n  \"descricao\": \"Reagendada para o proximo trimestre.\",\n  \"status\": \"CANCELADA\",\n  \"prioridade\": \"ALTA\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/tarefas", "host": ["{{baseUrl}}"], "path": ["api", "tarefas"] }
+          }
+        }
+      ]
+    }
+  ]
+}
