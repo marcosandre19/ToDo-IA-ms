@@ -226,10 +226,10 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] `./mvnw spring-boot:run -Dspring-boot.run.profiles=prod` sobe no perfil prod sem erro
 
 - [ ] **RT-013** — README de uso na raiz do projeto
-  - [ ] Arquivo `README.md` na raiz com seções: Visão geral, Stack, Pré-requisitos, Como rodar, Como testar, Endpoints (link para Swagger), Health check, Estrutura de pastas
-  - [ ] Comandos copiáveis: `./mvnw spring-boot:run`, `./mvnw test`, `./mvnw clean package`
-  - [ ] Pelo menos 1 exemplo de `curl` para `POST /api/tarefas` e 1 para `GET /health`
-  - [ ] Link para `docs/escopo-todo.md` e `docs/backlog.md`
+  - [x] Arquivo `README.md` na raiz com seções: descrição, Stack, Arquitetura (parágrafo + diagrama Mermaid + estrutura de pacotes), Pré-requisitos, Instalação, Execução (com URLs e Health check), Endpoints, Modelo de dados, Tratamento de erros, Testes, Configuração, Uso de IA, Limitações, Próximos passos
+  - [ ] Comandos copiáveis: `./mvnw spring-boot:run` ✅ e `./mvnw test` ✅ presentes; `./mvnw clean package` é entrega do `RT-014` (empacotamento JAR), ainda não citado no README
+  - [x] Pelo menos 1 exemplo de `curl` para `POST /api/tarefas` (na seção Endpoints) e 1 para `GET /health` (na seção Execução)
+  - [ ] Link para `docs/escopo-todo.md` e `docs/backlog.md` ainda não foi adicionado no README
 
 - [ ] **RT-014** — Empacotamento JAR executável
   - [ ] `./mvnw clean package` gera JAR em `target/`
