@@ -12,6 +12,7 @@ Expor uma API REST em Spring Boot para CRUD de tarefas pessoais, com persistênc
 | `spring-boot-starter-web` | 2.7.18 | Servidor embarcado (Tomcat) e MVC para expor REST. |
 | `spring-boot-starter-data-jpa` | 2.7.18 | Repositórios JPA sobre Hibernate, reduz boilerplate de DAO. |
 | `spring-boot-starter-validation` | 2.7.18 | Bean Validation (`javax.validation`) para validar DTOs no controller. |
+| `spring-boot-starter-actuator` | 2.7.18 | Endpoint `/health` com checagem automática de `DataSource` via `DataSourceHealthIndicator`. |
 | `com.h2database:h2` | 2.1.x (gerenciada) | Banco embarcado em modo arquivo; zero infra para o MVP. |
 | `spring-boot-starter-test` | 2.7.18 | JUnit 5, AssertJ, MockMvc para testes de unidade e integração. |
 | Maven Wrapper (`mvnw`) | — | Build reprodutível sem exigir Maven instalado. |
@@ -56,6 +57,16 @@ spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
 spring.jpa.hibernate.ddl-auto=update
 spring.h2.console.enabled=true
 spring.h2.console.path=/h2-console
+
+# Contrato temporal (§3)
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.time-zone=UTC
+
+# Actuator — health remapeado para /health (ver §4.0)
+management.endpoints.web.base-path=/
+management.endpoints.web.path-mapping.health=health
+management.endpoints.web.exposure.include=health
+management.endpoint.health.show-details=when_authorized
 ```
 
 ## 3. Modelo de dados
@@ -106,31 +117,33 @@ Base path do recurso de tarefas: `/api/tarefas`. O endpoint `/health` é exposto
 
 Endpoint de liveness/readiness usado para verificar se a aplicação está no ar e se a conexão com o H2 está saudável. Não exige autenticação e não é versionado sob `/api`.
 
+Implementação: **`spring-boot-starter-actuator`** com `HealthEndpoint` remapeado de `/actuator/health` para `/health` (configuração em §2). O `DataSourceHealthIndicator` é registrado automaticamente e roda `Connection#isValid(timeout)` em cada chamada.
+
+Política de detalhes: `management.endpoint.health.show-details=when_authorized`. Como o MVP não tem autenticação, o corpo nunca exibe os componentes individuais — apenas o agregado `{"status":"UP"}`. Em release futuro com auth, usuários autorizados verão o bloco `components`.
+
 Response `200 OK` (serviço disponível):
 ```json
-{
-  "status": "UP",
-  "service": "todo-tarefas",
-  "timestamp": "2026-05-03T14:22:31Z",
-  "checks": {
-    "database": "UP"
-  }
-}
+{ "status": "UP" }
 ```
 
 Response `503 Service Unavailable` (dependência crítica indisponível, ex.: H2 inacessível):
 ```json
+{ "status": "DOWN" }
+```
+
+Quando `show-details=always` (ex.: profile dev), o corpo inclui `components`:
+```json
 {
-  "status": "DOWN",
-  "service": "todo-tarefas",
-  "timestamp": "2026-05-03T14:22:31Z",
-  "checks": {
-    "database": "DOWN"
+  "status": "UP",
+  "components": {
+    "db": { "status": "UP", "details": { "database": "H2", "validationQuery": "isValid()" } },
+    "diskSpace": { "status": "UP" },
+    "ping": { "status": "UP" }
   }
 }
 ```
 
-> Implementação: controller dedicado `HealthController` (camada `controller`), com um `DataSource` injetado para validar a conexão JDBC via `Connection#isValid(timeout)`. Não usa `spring-boot-starter-actuator` no MVP, para manter o stack enxuto.
+> Decisão arquitetural: usar o actuator (em vez de um `HealthController` custom) reduz código próprio, herda checagens automáticas (db, diskSpace, ping) e segue convenção idiomática do Spring Boot. O remap para `/health` mantém o path simples (sem prefixo `/actuator`) e não requer mudanças em load balancers ou consumidores.
 
 ### 4.1 `POST /api/tarefas`
 
@@ -310,8 +323,7 @@ Centralização: `@RestControllerAdvice` em `exception/GlobalExceptionHandler`.
 src/main/java/com/toDo/tarefas/
 ├── TarefasApplication.java
 ├── controller/
-│   ├── TarefaController.java
-│   └── HealthController.java
+│   └── TarefaController.java
 ├── service/
 │   └── TarefaService.java
 ├── repository/
@@ -324,7 +336,6 @@ src/main/java/com/toDo/tarefas/
 │   ├── TarefaRequest.java
 │   ├── TarefaResponse.java
 │   ├── AtualizarStatusRequest.java
-│   ├── HealthResponse.java
 │   └── ErroResponse.java
 └── exception/
     ├── TarefaNaoEncontradaException.java
@@ -343,16 +354,16 @@ src/test/java/com/toDo/tarefas/
 ## 8. Fases incrementais de implementação
 
 ### Fase 1 — Configuração base e persistência
-- **Entregas:** `pom.xml` com starters (web, data-jpa, validation, h2, test); `application.properties` com H2 em modo arquivo; entidade `Tarefas` com enums `StatusTarefa` e `Prioridade`; `TarefaRepository` (`JpaRepository<Tarefas, Long>`); `TarefasApplication` rodando.
-- **Pronto quando:** `./mvnw spring-boot:run` sobe sem erro, console H2 acessível em `/h2-console`, e a tabela `tarefas` é criada automaticamente em `./data/tarefas.mv.db`.
+- **Entregas:** `pom.xml` com starters (web, data-jpa, validation, actuator, h2, test); `application.properties` com H2 em modo arquivo, contrato temporal e remapeamento do `/health`; entidade `Tarefas` com enums `StatusTarefa` e `Prioridade`; `TarefaRepository` (`JpaRepository<Tarefas, Long>`); `TarefasApplication` rodando.
+- **Pronto quando:** `./mvnw spring-boot:run` sobe sem erro, `GET /health` responde `200 {"status":"UP"}`, console H2 acessível em `/h2-console`, e a tabela `tarefas` é criada automaticamente em `./data/tarefas.mv.db`.
 
 ### Fase 2 — DTOs e camada de serviço
 - **Entregas:** `TarefaRequest`, `TarefaResponse`, `AtualizarStatusRequest` com anotações de Bean Validation; `TarefaService` com métodos `criar`, `listar(filtros)`, `buscarPorId`, `atualizar`, `atualizarStatus`, `remover`; mapeamento entidade ↔ DTO (manual, sem MapStruct no MVP); `TarefaNaoEncontradaException`.
 - **Pronto quando:** testes unitários do `TarefaService` cobrem casos felizes e erro de "não encontrado", usando `@DataJpaTest` ou mock do repositório.
 
 ### Fase 3 — Controller e endpoints CRUD
-- **Entregas:** `TarefaController` expondo os 6 endpoints CRUD da seção 4; `HealthController` expondo `GET /health` com checagem do `DataSource`; uso de `ResponseEntity` com status corretos e header `Location` no POST; suporte a query params `status` e `prioridade` no GET de listagem.
-- **Pronto quando:** todos os endpoints (incluindo `/health`) respondem corretamente via `curl`/Postman e testes com `MockMvc` validam status codes e payloads.
+- **Entregas:** `TarefaController` expondo os 6 endpoints CRUD da seção 4; uso de `ResponseEntity` com status corretos e header `Location` no POST; suporte a query params `status` e `prioridade` no GET de listagem. O `GET /health` é entregue automaticamente pelo actuator desde a Fase 1 (não exige código próprio — ver §4.0).
+- **Pronto quando:** todos os endpoints CRUD respondem corretamente via `curl`/Postman e testes com `MockMvc` validam status codes e payloads.
 
 ### Fase 4 — Tratamento global de erros
 - **Entregas:** `ErroResponse` (DTO); `GlobalExceptionHandler` com `@RestControllerAdvice` mapeando todas as exceções da seção 6; formato unificado de resposta de erro, incluindo o campo `errors` para validação multi-campo.

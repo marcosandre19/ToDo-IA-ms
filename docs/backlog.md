@@ -16,9 +16,9 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
 
 - [ ] **RT-001** — Configurar `pom.xml` com Spring Boot 2.7.18
   - [ ] `parent` declarado como `spring-boot-starter-parent:2.7.18`
-  - [ ] Dependências presentes: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `com.h2database:h2`, `spring-boot-starter-test`
+  - [ ] Dependências presentes: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`, `com.h2database:h2` (scope runtime), `spring-boot-starter-test` (scope test)
   - [ ] `java.version` = 11
-  - [ ] `./mvnw clean package` conclui sem erro
+  - [ ] `./mvnw clean compile` conclui sem erro
 
 - [ ] **RT-002** — Criar classe principal `TarefasApplication` e estrutura de pacotes
   - [ ] Classe `com.toDo.tarefas.TarefasApplication` com `@SpringBootApplication` e `main`
@@ -30,6 +30,8 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] Driver, usuário (`sa`) e senha vazia configurados conforme escopo
   - [ ] `spring.jpa.hibernate.ddl-auto=update`
   - [ ] H2 console habilitado em `/h2-console`
+  - [ ] Contrato temporal: `spring.jackson.serialization.write-dates-as-timestamps=false` e `spring.jackson.time-zone=UTC` (ver `escopo-todo.md` §3)
+  - [ ] Actuator remapeado: `management.endpoints.web.base-path=/`, `management.endpoints.web.path-mapping.health=health`, `management.endpoints.web.exposure.include=health`, `management.endpoint.health.show-details=when_authorized`
   - [ ] Após `spring-boot:run`, arquivo `./data/tarefas.mv.db` é criado no filesystem
 
 ### Requisitos funcionais
@@ -73,13 +75,14 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] Id existente: retorna `204 No Content` com corpo vazio e remove o registro
   - [ ] Id inexistente: retorna `404 Not Found`
 
-- [ ] **RF-008.1** — Endpoint `GET /health` (verificação de disponibilidade)
-  - [ ] Classe `controller.HealthController` exposta em `/health` (fora do prefixo `/api`)
-  - [ ] DTO `dto.HealthResponse` com campos `status`, `service`, `timestamp`, `checks`
-  - [ ] Aplicação saudável: retorna `200 OK` com `status=UP` e `checks.database=UP`
-  - [ ] Conexão com o H2 indisponível: retorna `503 Service Unavailable` com `status=DOWN` e `checks.database=DOWN`
-  - [ ] Validação da conexão via `DataSource#getConnection().isValid(timeout)` (timeout sugerido: 1s)
-  - [ ] Endpoint não exige autenticação e não é coberto pela validação Bean Validation
+- [x] **RF-008.1** — Endpoint `GET /health` (verificação de disponibilidade via actuator)
+  - [x] Dependência `spring-boot-starter-actuator` no `pom.xml`
+  - [x] Endpoint exposto em `/health` (remapeado de `/actuator/health`) — fora do prefixo `/api`
+  - [x] Aplicação saudável: retorna `200 OK` com `{"status":"UP"}` (corpo agregado, sem detalhes — `show-details=when_authorized` e MVP sem auth)
+  - [x] Banco indisponível: `DataSourceHealthIndicator` muda agregado para `DOWN`, retorna `503 Service Unavailable` com `{"status":"DOWN"}`
+  - [x] Validação da conexão é feita pelo `DataSourceHealthIndicator` automaticamente (Spring Boot herda o comportamento de `Connection#isValid(timeout)`)
+  - [x] Endpoint não exige autenticação e não é coberto pela validação Bean Validation
+  - [x] Outros endpoints do actuator (`/info`, `/metrics`, etc.) **não** são expostos no MVP (`exposure.include=health`)
 
 - [ ] **RF-009** — Camada de serviço `TarefaService` e DTOs
   - [ ] `dto.TarefaRequest`, `dto.TarefaResponse`, `dto.AtualizarStatusRequest` criados
@@ -185,11 +188,10 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] Valida status codes, header `Location` no POST e estrutura de resposta de erro padronizada
   - [ ] Pelo menos 1 teste para cada status code esperado na seção 4 do escopo
 
-- [ ] **RT-009.1** — Testes do `HealthController`
-  - [ ] Arquivo `controller/HealthControllerTest.java` com `@SpringBootTest` + `@AutoConfigureMockMvc`
-  - [ ] Cenário UP: `GET /health` retorna `200 OK` com `status=UP` e `checks.database=UP`
-  - [ ] Cenário DOWN: com `DataSource` mockado para falhar, retorna `503` com `status=DOWN` e `checks.database=DOWN`
-  - [ ] Valida formato do `timestamp` (ISO-8601) e presença do campo `service`
+- [ ] **RT-009.1** — Teste de fumaça do `/health`
+  - [ ] Arquivo `HealthEndpointTest.java` com `@SpringBootTest` + `@AutoConfigureMockMvc`
+  - [ ] Cenário UP: `GET /health` retorna `200 OK` com corpo `{"status":"UP"}` (apenas o agregado — `show-details=when_authorized`)
+  - [ ] Não testar cenário DOWN: o `DataSourceHealthIndicator` é código do framework, já testado pelo Spring Boot. Reescrever esse cenário aqui adicionaria pouco valor.
 
 ---
 

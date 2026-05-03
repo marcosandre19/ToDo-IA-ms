@@ -13,7 +13,11 @@ flowchart TD
     subgraph Aplicacao[Spring Boot - com.toDo.tasks]
         subgraph Controller[controller]
             TC["TarefaController<br/>POST /api/tarefas<br/>GET /api/tarefas<br/>GET /api/tarefas/{id}<br/>PUT /api/tarefas/{id}<br/>PATCH /api/tarefas/{id}/status<br/>DELETE /api/tarefas/{id}"]
-            HC["HealthController<br/>GET /health"]
+        end
+
+        subgraph Actuator[Spring Boot Actuator]
+            HE["HealthEndpoint<br/>GET /health"]
+            DHI["DataSourceHealthIndicator<br/>(automático)"]
         end
 
         subgraph Service[service]
@@ -42,9 +46,10 @@ flowchart TD
     TS -->|TarefaResponse| TC
     TC -->|HTTP response JSON| Cliente
 
-    Cliente -->|GET /health| HC
-    HC -->|valida conexão| H2
-    HC -->|HealthResponse JSON| Cliente
+    Cliente -->|GET /health| HE
+    HE -->|consulta| DHI
+    DHI -->|valida conexão| H2
+    HE -->|status agregado| Cliente
 
     DTO -.serializa.-> TC
     BV -.valida @Valid.-> TC
@@ -119,31 +124,38 @@ Exemplo do corpo retornado em (5):
 
 ## 4. Fluxo do `GET /health`
 
-Sequência da verificação de disponibilidade. O `HealthController` consulta o `DataSource` via `Connection#isValid(timeout)` e devolve `200 OK`/`UP` quando a conexão está saudável ou `503 Service Unavailable`/`DOWN` quando o H2 está inacessível.
+Sequência da verificação de disponibilidade via `spring-boot-starter-actuator`. O `HealthEndpoint` agrega os indicadores registrados (no MVP, principalmente `DataSourceHealthIndicator`, `DiskSpaceHealthIndicator` e `PingHealthIndicator`) e retorna o status consolidado. Não há código próprio na camada `controller`.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant C as Cliente HTTP
-    participant HC as HealthController
-    participant DS as DataSource
+    participant HE as HealthEndpoint<br/>(actuator)
+    participant DHI as DataSourceHealthIndicator
+    participant DS as DataSource (HikariCP)
     participant H2 as H2 (file)
 
-    C->>HC: GET /health
-    HC->>DS: getConnection()
+    C->>HE: GET /health
+    HE->>DHI: health()
+    DHI->>DS: getConnection()
     DS->>H2: abre conexao JDBC
     H2-->>DS: Connection
-    DS-->>HC: Connection
-    HC->>H2: connection.isValid(1s)
+    DS-->>DHI: Connection
+    DHI->>H2: connection.isValid(timeout)
 
     alt H2 saudavel
-        H2-->>HC: true
-        HC-->>C: 200 OK<br/>{status: UP, checks.database: UP}
+        H2-->>DHI: true
+        DHI-->>HE: Health.up()
+        Note over HE: agrega com<br/>DiskSpaceHealthIndicator<br/>e PingHealthIndicator
+        HE-->>C: 200 OK<br/>{"status":"UP"}
     else H2 indisponivel
-        H2-->>HC: false / SQLException
-        HC-->>C: 503 Service Unavailable<br/>{status: DOWN, checks.database: DOWN}
+        H2-->>DHI: false / SQLException
+        DHI-->>HE: Health.down()
+        HE-->>C: 503 Service Unavailable<br/>{"status":"DOWN"}
     end
 ```
+
+> O corpo da resposta exibe apenas o `status` agregado porque `management.endpoint.health.show-details=when_authorized` e o MVP não tem autenticação. Em release com auth ou `show-details=always`, o corpo inclui o bloco `components` com cada indicador.
 
 ## 5. Diagrama de estados — `StatusTarefa`
 

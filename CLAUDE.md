@@ -2,13 +2,14 @@
 
 ## Stack
 - Java 11
-- Spring Boot (web, data-jpa, validation)
+- Spring Boot 2.7.18 (web, data-jpa, validation, actuator)
 - H2 em modo arquivo (persistência local em `./data/tarefas`)
-- Maven
+- Maven (wrapper `./mvnw`)
 - IntelliJ IDEA
 
 ## Estado atual
-Projeto recém-criado via Spring Initializr. Sem código de domínio ainda.
+Projeto Spring Boot 2.7.18 funcional, sem código de domínio ainda.
+Setup: Maven Wrapper (`./mvnw`), `TarefasApplication` em `com.toDo.tarefas`, H2 em modo arquivo (`./data/tarefas.mv.db`), `/health` exposto via `spring-boot-starter-actuator` (remapeado de `/actuator/health`).
 
 ## Convenções
 - Pacote base: `com.toDo.tarefas`
