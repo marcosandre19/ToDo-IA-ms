@@ -71,7 +71,7 @@ management.endpoint.health.show-details=when_authorized
 
 ## 3. Modelo de dados
 
-Entidade JPA `Tarefas` mapeada para a tabela `tarefas`.
+Entidade JPA `Tarefa` mapeada para a tabela `tarefas`.
 
 | Campo | Tipo Java | Coluna SQL | Restrições | Default |
 |---|---|---|---|---|
@@ -329,9 +329,10 @@ src/main/java/com/toDo/tarefas/
 ├── repository/
 │   └── TarefaRepository.java
 ├── entity/
-│   ├── Tarefas.java
-│   ├── StatusTarefa.java
-│   └── Prioridade.java
+│   ├── Tarefa.java
+│   └── enums/
+│       ├── StatusTarefa.java
+│       └── Prioridade.java
 ├── dto/
 │   ├── TarefaRequest.java
 │   ├── TarefaResponse.java
@@ -354,7 +355,7 @@ src/test/java/com/toDo/tarefas/
 ## 8. Fases incrementais de implementação
 
 ### Fase 1 — Configuração base e persistência
-- **Entregas:** `pom.xml` com starters (web, data-jpa, validation, actuator, h2, test); `application.properties` com H2 em modo arquivo, contrato temporal e remapeamento do `/health`; entidade `Tarefas` com enums `StatusTarefa` e `Prioridade`; `TarefaRepository` (`JpaRepository<Tarefas, Long>`); `TarefasApplication` rodando.
+- **Entregas:** `pom.xml` com starters (web, data-jpa, validation, actuator, h2, test); `application.properties` com H2 em modo arquivo, contrato temporal e remapeamento do `/health`; entidade `Tarefa` com enums `StatusTarefa` e `Prioridade`; `TarefaRepository` (`JpaRepository<Tarefa, Long>`); `TarefasApplication` rodando.
 - **Pronto quando:** `./mvnw spring-boot:run` sobe sem erro, `GET /health` responde `200 {"status":"UP"}`, console H2 acessível em `/h2-console`, e a tabela `tarefas` é criada automaticamente em `./data/tarefas.mv.db`.
 
 ### Fase 2 — DTOs e camada de serviço

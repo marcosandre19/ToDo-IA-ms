@@ -42,7 +42,7 @@ flowchart TD
     TS -->|persiste / consulta| TR
     TR -->|JDBC| H2
     H2 -->|ResultSet| TR
-    TR -->|Tarefas| TS
+    TR -->|Tarefa| TS
     TS -->|TarefaResponse| TC
     TC -->|HTTP response JSON| Cliente
 
@@ -74,12 +74,12 @@ sequenceDiagram
     TC->>V: @Valid TarefaRequest
     V-->>TC: ok (sem violations)
     TC->>TS: criar(TarefaRequest)
-    TS->>TS: mapear DTO -> Tarefas<br/>aplicar defaults (PENDENTE, MEDIA)<br/>setar criadoEm/atualizadoEm
-    TS->>TR: save(Tarefas)
+    TS->>TS: mapear DTO -> Tarefa<br/>aplicar defaults (PENDENTE, MEDIA)<br/>setar criadoEm/atualizadoEm
+    TS->>TR: save(Tarefa)
     TR->>H2: INSERT INTO tarefas (...)
     H2-->>TR: id gerado
-    TR-->>TS: Tarefas (com id)
-    TS->>TS: mapear Tarefas -> TarefaResponse
+    TR-->>TS: Tarefa (com id)
+    TS->>TS: mapear Tarefa -> TarefaResponse
     TS-->>TC: TarefaResponse
     TC-->>C: 201 Created<br/>Location: /api/tarefas/{id}<br/>body: TarefaResponse
 ```
@@ -159,7 +159,7 @@ sequenceDiagram
 
 ## 5. Diagrama de estados — `StatusTarefa`
 
-A entidade `Tarefas` possui o campo `status` com 4 valores definidos no escopo. A regra 8 da seção 5 declara que **transições são livres** no MVP — qualquer estado pode ir para qualquer outro via `PUT` ou `PATCH /api/tarefas/{id}/status`. O diagrama documenta os estados existentes e o default de criação.
+A entidade `Tarefa` possui o campo `status` com 4 valores definidos no escopo. A regra 8 da seção 5 declara que **transições são livres** no MVP — qualquer estado pode ir para qualquer outro via `PUT` ou `PATCH /api/tarefas/{id}/status`. O diagrama documenta os estados existentes e o default de criação.
 
 ```mermaid
 stateDiagram-v2
@@ -186,4 +186,4 @@ stateDiagram-v2
 
 ## Diagramas omitidos
 
-- **Diagrama ER (`erDiagram`) omitido** — o modelo de dados da seção 3 do escopo possui apenas a entidade `Tarefas`, sem relacionamentos com outras entidades. Os campos `status` e `prioridade` são enums armazenados como `VARCHAR`, não tabelas separadas.
+- **Diagrama ER (`erDiagram`) omitido** — o modelo de dados da seção 3 do escopo possui apenas a entidade `Tarefa`, sem relacionamentos com outras entidades. Os campos `status` e `prioridade` são enums armazenados como `VARCHAR`, não tabelas separadas.

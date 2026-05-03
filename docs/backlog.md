@@ -36,15 +36,15 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
 
 ### Requisitos funcionais
 
-- [ ] **RF-001** — Modelar entidade `Tarefas` e enums
-  - [ ] Classe `entity.Tarefas` mapeada para tabela `tarefas` com todos os campos da seção 3 do escopo
-  - [ ] Enums `StatusTarefa` (`PENDENTE`, `EM_ANDAMENTO`, `CONCLUIDA`, `CANCELADA`) e `Prioridade` (`BAIXA`, `MEDIA`, `ALTA`)
-  - [ ] `id` com `@GeneratedValue(strategy = IDENTITY)`
-  - [ ] `criadoEm` e `atualizadoEm` populados automaticamente via `@PrePersist` / `@PreUpdate`
-  - [ ] Tabela `tarefas` é criada no H2 com as colunas e tipos da seção 3
+- [x] **RF-001** — Modelar entidade `Tarefa` e enums
+  - [x] Classe `entity.Tarefa` mapeada para tabela `tarefas` com todos os campos da seção 3 do escopo
+  - [x] Enums `StatusTarefa` (`PENDENTE`, `EM_ANDAMENTO`, `CONCLUIDA`, `CANCELADA`) e `Prioridade` (`BAIXA`, `MEDIA`, `ALTA`) em `entity.enums`
+  - [x] `id` com `@GeneratedValue(strategy = IDENTITY)`
+  - [x] `criadoEm` e `atualizadoEm` populados automaticamente via `@PrePersist` / `@PreUpdate` (em UTC, `OffsetDateTime`)
+  - [x] Tabela `tarefas` é criada no H2 com as colunas e tipos da seção 3
 
 - [ ] **RF-002** — Repositório JPA `TarefaRepository`
-  - [ ] Interface `repository.TarefaRepository extends JpaRepository<Tarefas, Long>`
+  - [ ] Interface `repository.TarefaRepository extends JpaRepository<Tarefa, Long>`
   - [ ] Suporte a filtro por `status` e `prioridade` (via query method ou `Specification`)
   - [ ] `save`, `findById`, `findAll`, `deleteById` operam sem erro contra o H2
 
@@ -88,7 +88,7 @@ Backlog derivado do escopo em `escopo-todo.md`, organizado em 3 releases increme
   - [ ] `dto.TarefaRequest`, `dto.TarefaResponse`, `dto.AtualizarStatusRequest` criados
   - [ ] `service.TarefaService` com métodos `criar`, `listar(filtros)`, `buscarPorId`, `atualizar`, `atualizarStatus`, `remover`
   - [ ] Mapeamento entidade ↔ DTO manual (sem MapStruct)
-  - [ ] Controller nunca expõe a entidade `Tarefas` diretamente
+  - [ ] Controller nunca expõe a entidade `Tarefa` diretamente
 
 ---
 
