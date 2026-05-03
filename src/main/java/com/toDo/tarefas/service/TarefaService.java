@@ -95,7 +95,10 @@ public class TarefaService {
         existente.setStatus(request.getStatus());
         existente.setPrioridade(request.getPrioridade());
         existente.setDataVencimento(request.getDataVencimento());
-        return toResponse(tarefaRepository.save(existente));
+        // saveAndFlush força o flush imediato, disparando @PreUpdate antes do
+        // mapeamento — sem isso, atualizadoEm no response viria com o valor
+        // antigo (a transação só comitaria depois do toResponse).
+        return toResponse(tarefaRepository.saveAndFlush(existente));
     }
 
     /**
