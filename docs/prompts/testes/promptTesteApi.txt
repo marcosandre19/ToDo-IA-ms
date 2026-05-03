@@ -1,0 +1,210 @@
+# Contexto
+MVP de API REST em Spring Boot 2.7.x (Java 11) para gerenciar tarefas. Documentos de referência:
+- `escopo-todo.md` — escopo técnico (endpoints, status codes, regras de validação)
+- `docs/backlog.md` — backlog por release com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos (incluindo sequence diagrams de sucesso e erro)
+- `CLAUDE.md` — convenções (incluindo idioma pt-br para domínio, inglês para sufixos técnicos)
+
+**Leia os quatro documentos antes de começar.** Se houver divergência, pare e me avise.
+
+Etapas concluídas:
+1. Conversão para Spring Boot ✅
+2. Enums + Entidades (`Tarefa`, `StatusTarefa`, `Prioridade`) ✅
+3. Exceções + DTO de erro (`TarefaNaoEncontradaException`, `ErroResponse`, `GlobalExceptionHandler`) ✅
+4. Repository (`TarefaRepository`) ✅
+5. Service (`TarefaService`) ✅
+6. Controller + DTOs (`TarefaController`, `TarefaRequest`, `TarefaResponse`, `AtualizarStatusRequest`) ✅
+7. Testes unitários do service (`TarefaServiceTest`) ✅
+
+Etapa atual: **suíte de testes dos endpoints (`TarefaControllerTest`)**.
+
+Próximas etapas (não fazer agora): testes do repository (`@DataJpaTest`), testes de integração ponta a ponta.
+
+# Restrição arquitetural mandatória — isolamento de dependências
+
+**Os testes do controller NÃO devem tocar em repositório nem em banco de dados.** Estado global entre testes é causa principal de suítes flakey, e essa etapa precisa ficar imune a isso por construção, não por convenção.
+
+A forma de garantir isso é usar **`@WebMvcTest(TarefaController.class)`** com **`@MockBean private TarefaService tarefaService`**. Essa combinação:
+- Sobe APENAS a camada web (controller, handler global, conversão JSON, Bean Validation, filtros relacionados)
+- Substitui o `TarefaService` no contexto por um mock — o service real **nunca é instanciado**
+- Como o service é mockado, repositório e banco **não fazem parte do contexto do teste**, então não há estado para vazar entre testes
+
+**NÃO usar `@SpringBootTest`** — sobe o contexto inteiro, expõe o teste a estado global do banco e quintuplica o tempo de execução.
+
+**NÃO usar `@DataJpaTest` aqui** — é para testes de repository, não de controller.
+
+# Estrutura atual do projeto
+
+```
+src/main/java/com/toDo/tarefas/
+├── TarefasApplication.java
+├── controller/TarefaController.java
+├── service/TarefaService.java
+├── repository/TarefaRepository.java
+├── entity/
+│   ├── Tarefa.java
+│   └── enums/{StatusTarefa.java, Prioridade.java}
+├── dto/
+│   ├── TarefaRequest.java
+│   ├── TarefaResponse.java
+│   ├── AtualizarStatusRequest.java
+│   └── ErroResponse.java
+└── exception/
+    ├── TarefaNaoEncontradaException.java
+    └── GlobalExceptionHandler.java
+
+src/test/java/com/toDo/tarefas/
+├── service/TarefaServiceTest.java         (já existe)
+└── controller/TarefaControllerTest.java   (a ser criado nesta etapa)
+```
+
+# Objetivo
+Implementar `src/test/java/com/toDo/tarefas/controller/TarefaControllerTest.java` cobrindo todos os endpoints do `TarefaController` com `@WebMvcTest` + `MockMvc`.
+
+# Decisões técnicas (seguir exatamente)
+
+## Anotações da classe de teste
+```java
+@WebMvcTest(TarefaController.class)
+class TarefaControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockBean
+    private TarefaService tarefaService;
+
+    // testes
+}
+```
+
+- `@WebMvcTest(TarefaController.class)` — limita o slice ao controller específico, não escaneia o resto
+- `@MockBean` — injeta o mock como bean Spring, substituindo o real (DIFERENTE de `@Mock` puro do Mockito)
+- `MockMvc` e `ObjectMapper` vêm autoconfigurados pelo `@WebMvcTest`
+- O `GlobalExceptionHandler` é detectado automaticamente porque está anotado com `@RestControllerAdvice` — não precisa importá-lo manualmente
+
+## Convenção de nomes
+- Padrão: `deve<Comportamento>Quando<Contexto>` em pt-br, sem acentos no nome do método
+- Exemplos:
+  - `deveCriarTarefaERetornar201ComLocation`
+  - `deveRetornar400QuandoCriarComTituloVazio`
+  - `deveRetornar404QuandoBuscarTarefaInexistente`
+  - `deveRetornar400QuandoBodyForJsonInvalido`
+- `@DisplayName` em pt-br **com** acentos é bem-vindo em testes-chave para legibilidade no relatório
+
+## Padrão AAA dentro de cada teste
+Estruturar cada teste em três blocos separados (Arrange, Act, Assert) com comentários ou linha em branco. `MockMvc.perform(...)` encadeia Act e Assert na mesma chamada, mas o Arrange (configuração de mocks e payloads) deve ficar visualmente separado.
+
+## Cobertura mínima exigida
+
+### `POST /tarefas`
+- **Sucesso (201)**: payload válido, `tarefaService.criar(...)` mockado retorna `Tarefa` com ID populado. Asserções:
+  - `status().isCreated()` (201)
+  - `header().string("Location", containsString("/tarefas/"))` — header presente e contendo o path
+  - `jsonPath("$.id").value(<id esperado>)`
+  - `jsonPath("$.titulo").value(<titulo esperado>)`
+  - `verify(tarefaService).criar(any(Tarefa.class))`
+- **Validação falhou (400)**: payload com titulo vazio (ou outra regra do escopo). Asserções:
+  - `status().isBadRequest()`
+  - `jsonPath("$.status").value(400)`
+  - `jsonPath("$.camposComErro.titulo").exists()` — confirma que erro por campo foi serializado (ajustar nome do campo conforme `ErroResponse` real)
+  - **`tarefaService` NUNCA foi chamado**: `verify(tarefaService, never()).criar(any())`
+- **JSON malformado (400)**: body com JSON sintaticamente inválido (ex.: `"{ titulo: }"`). Asserções:
+  - `status().isBadRequest()` — confirma que `HttpMessageNotReadableException` é tratado pelo handler global
+  - `verify(tarefaService, never()).criar(any())`
+  - **Se este teste falhar com 500**, sinalize no chat: o `GlobalExceptionHandler` está incompleto e precisa de `@ExceptionHandler(HttpMessageNotReadableException.class)`. **Pare e me avise — não corrija o código de produção neste prompt**
+
+### `GET /tarefas`
+- **Lista com tarefas (200)**: `tarefaService.listar()` retorna `List.of(tarefa1, tarefa2)`. Asserções:
+  - `status().isOk()`
+  - `jsonPath("$").isArray()`
+  - `jsonPath("$.length()").value(2)`
+  - `jsonPath("$[0].id").value(...)`
+- **Lista vazia (200)**: `tarefaService.listar()` retorna `Collections.emptyList()`. Asserções:
+  - `status().isOk()`
+  - `jsonPath("$.length()").value(0)`
+
+### `GET /tarefas/{id}`
+- **Sucesso (200)**: `tarefaService.buscarPorId(1L)` retorna a tarefa. Assertions sobre o JSON.
+- **Não encontrado (404)**: `tarefaService.buscarPorId(99L)` lança `TarefaNaoEncontradaException`. Asserções:
+  - `status().isNotFound()`
+  - `jsonPath("$.status").value(404)`
+  - `jsonPath("$.mensagem").value(containsString("99"))` — mensagem da exceção mencionando o ID
+  - `jsonPath("$.caminho").value("/tarefas/99")`
+
+### `PUT /tarefas/{id}`
+- **Sucesso (200)**: payload válido, `tarefaService.atualizar(...)` retorna a tarefa atualizada. Assertions sobre o JSON retornado.
+- **Não encontrado (404)**: service lança `TarefaNaoEncontradaException`. Mesmas asserções do GET 404.
+- **Validação falhou (400)**: payload inválido. Mesmas asserções do POST 400.
+
+### `DELETE /tarefas/{id}`
+- **Sucesso (204)**: `tarefaService.apagar(1L)` retorna `void`. Asserções:
+  - `status().isNoContent()` (204)
+  - `verify(tarefaService).apagar(1L)`
+- **Não encontrado (404)**: `tarefaService.apagar(99L)` lança `TarefaNaoEncontradaException`. Asserções de 404.
+
+### Endpoint adicional do projeto: `AtualizarStatusRequest`
+Pelo nome do DTO, parece haver endpoint específico para atualizar status (provavelmente `PATCH /tarefas/{id}/status` ou similar). **Confirme o endpoint exato lendo `TarefaController.java` e `escopo-todo.md`**, e adicione cobertura equivalente: caso de sucesso (200), caso de status inválido (400), caso de tarefa inexistente (404).
+
+## Detalhes técnicos
+
+### Serialização do request body
+```java
+String json = objectMapper.writeValueAsString(request);
+mockMvc.perform(post("/tarefas")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(json))
+       .andExpect(status().isCreated());
+```
+
+### Mocks que retornam exceção
+```java
+when(tarefaService.buscarPorId(99L))
+    .thenThrow(new TarefaNaoEncontradaException(99L));
+```
+
+### Métodos auxiliares
+- `private Tarefa tarefaPersistida(Long id)` — fixture com ID populado
+- `private TarefaRequest requisicaoValida()` — fixture de request válido
+- `private TarefaRequest requisicaoComTituloVazio()` — fixture de request inválido
+
+### Imports estáticos idiomáticos (todos no mesmo lugar, ajuda muito a legibilidade)
+```java
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+```
+
+# Critérios de "pronto"
+- [ ] `./mvnw test` executa todos os testes com sucesso (verde)
+- [ ] **Nenhum teste sobe contexto Spring inteiro** (`@SpringBootTest` não aparece)
+- [ ] **Nenhum teste usa banco real** ou repository real
+- [ ] Cada endpoint tem teste de sucesso e teste(s) de erro relevantes
+- [ ] Teste do POST verifica explicitamente o **header `Location`**
+- [ ] Teste do POST de payload inválido verifica que o **service NÃO foi chamado**
+- [ ] Teste de JSON malformado existe e passa (ou foi sinalizado como handler incompleto, conforme regra acima)
+- [ ] `tarefaService` é `@MockBean`, nunca `@Mock` ou `@Autowired` real
+- [ ] Cada teste é independente — ordem de execução não importa, nenhum teste depende de side effect de outro
+- [ ] `docs/backlog.md` atualizado: itens cobertos marcados `[x]`
+
+# Restrições
+- NÃO criar testes de repository ou integração (etapas separadas)
+- NÃO usar `@SpringBootTest`, `@DataJpaTest`, banco H2 real, `TestRestTemplate`
+- NÃO adicionar dependências no `pom.xml`
+- NÃO alterar código de produção. Se um teste exigir mudança no controller, DTO, service ou handler, **pare e me avise** — pode indicar bug ou má interface
+- NÃO alterar `escopo-todo.md`, `docs/diagramas.md`, `application.properties`
+- Se algo no escopo contradiz este prompt, **escopo ganha** — sinalizar a divergência
+
+# Resposta esperada
+1. Lista de arquivos criados/alterados
+2. Lista dos testes implementados (nome do método + 1 linha descrevendo cenário)
+3. Saída resumida de `./mvnw test` (total de testes, tempo de execução, todos verdes)
+4. Confirmação explícita: o teste de JSON malformado passou? Se não, qual ajuste é necessário no `GlobalExceptionHandler`? (apenas reportar — não corrigir neste prompt)
+5. IDs do backlog marcados como `[x]`
+6. Comando para rodar apenas a suíte do controller: `./mvnw test -Dtest=TarefaControllerTest`
+7. Eventuais divergências encontradas

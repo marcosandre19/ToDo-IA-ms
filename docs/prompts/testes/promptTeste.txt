@@ -1,0 +1,178 @@
+# Contexto
+MVP de API REST em Spring Boot 2.7.x (Java 11) para gerenciar tarefas. Documentos de referência:
+- `escopo-todo.md` — escopo técnico
+- `docs/backlog.md` — backlog por release com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos
+- `CLAUDE.md` — convenções
+
+**Leia os quatro documentos antes de começar.** Se houver divergência, pare e me avise.
+
+Etapas concluídas:
+1. Conversão para Spring Boot ✅
+2. Enums + Entidades (`Tarefa`, `StatusTarefa`, `Prioridade`) ✅
+3. Exceções + DTO de erro (`TarefaNaoEncontradaException`, `ErroResponse`) ✅
+4. Repository (`TarefaRepository`) ✅
+5. Service (`TarefaService`) ✅
+6. Controller + DTOs + Handler global ✅
+
+Etapa atual: **suíte de testes unitários do `TarefaService`**.
+
+Próximas etapas (não fazer agora): testes do controller (`@WebMvcTest`), testes do repository (`@DataJpaTest`), testes de integração ponta a ponta.
+
+# Estrutura atual do projeto
+
+```
+src/main/java/com/toDo/tarefas/
+├── TarefasApplication.java
+├── controller/TarefaController.java
+├── service/TarefaService.java
+├── repository/TarefaRepository.java
+├── entity/
+│   ├── Tarefa.java
+│   └── enums/
+│       ├── StatusTarefa.java
+│       └── Prioridade.java
+├── dto/
+│   ├── TarefaRequest.java
+│   ├── TarefaResponse.java
+│   ├── AtualizarStatusRequest.java
+│   └── ErroResponse.java
+└── exception/
+    ├── TarefaNaoEncontradaException.java
+    └── GlobalExceptionHandler.java
+
+src/test/java/com/toDo/tarefas/
+└── (a ser criado nesta etapa: service/TarefaServiceTest.java)
+```
+
+**Observação sobre idioma**: o projeto adotou pt-br para nomes de domínio (`Tarefa`, `TarefaService`, métodos como `buscarPorId`) mas manteve sufixos técnicos e DTOs em inglês (`Request`, `Response`, `Handler`, pacotes `controller`/`service`/`repository`). Os testes devem seguir o mesmo padrão: nomes de métodos de teste em pt-br descrevendo comportamento, mas usando classes e tipos como já existem (`TarefaService`, `TarefaRepository`, etc.). **Atualizar o `CLAUDE.md` adicionando uma nota sobre essa convenção mista** se ainda não estiver registrada.
+
+# Objetivo
+Implementar `src/test/java/com/toDo/tarefas/service/TarefaServiceTest.java` cobrindo todos os métodos do `TarefaService` com **testes unitários puros** (Mockito + JUnit 5, sem subir contexto Spring).
+
+Cobertura mínima exigida:
+- **Criar tarefa** — caso de sucesso, validar que `repository.save` é chamado com a entidade correta
+- **Listar tarefas** — caso com lista vazia e caso com lista não vazia
+- **Buscar por ID** — caso de sucesso e caso de ID inexistente (lança `TarefaNaoEncontradaException`)
+- **Atualizar tarefa** — caso de sucesso (validando preservação de `dataCriacao`) e caso de ID inexistente
+- **Apagar tarefa** — caso de sucesso e caso de ID inexistente
+
+# Decisões técnicas (seguir exatamente)
+
+## Stack de testes
+- **JUnit 5** (já incluído no `spring-boot-starter-test`)
+- **Mockito** (já incluído) com `@ExtendWith(MockitoExtension.class)`
+- **AssertJ** (já incluído) — preferir `assertThat(...)` em vez de `assertEquals(...)`
+- **NÃO usar `@SpringBootTest`** — service não precisa de contexto Spring para teste unitário
+- **NÃO usar banco real ou H2** — repository é mockado
+
+## Estrutura da classe de teste
+
+```java
+@ExtendWith(MockitoExtension.class)
+class TarefaServiceTest {
+
+    @Mock
+    private TarefaRepository tarefaRepository;
+
+    @InjectMocks
+    private TarefaService tarefaService;
+
+    // métodos auxiliares de fixture (private)
+    // testes (@Test)
+}
+```
+
+- Sem campos estáticos de fixture (cada teste cria seus próprios objetos via método auxiliar)
+- Métodos auxiliares (`tarefaValida()`, `tarefaPersistida(Long id)`) ajudam a evitar repetição
+
+## Convenção de nomes
+- Padrão: `deve<Comportamento>Quando<Contexto>` em pt-br, sem acentos no nome do método (Java permite acentos mas geram ruído em logs e ferramentas)
+- Exemplos:
+  - `deveCriarTarefaComSucesso`
+  - `deveRetornarListaVaziaQuandoNaoExistemTarefas`
+  - `deveLancarExcecaoQuandoBuscarTarefaInexistente`
+  - `devePreservarDataCriacaoAoAtualizarTarefa`
+  - `deveLancarExcecaoQuandoApagarTarefaInexistente`
+- **`@DisplayName`** em pt-br **com** acentos é bem-vindo em testes-chave para legibilidade no relatório (ex.: `@DisplayName("Deve preservar dataCriacao ao atualizar tarefa")`)
+
+## Padrão AAA dentro de cada teste
+Estruturar cada teste em três blocos separados por linha em branco e comentário:
+
+```java
+@Test
+void deveCriarTarefaComSucesso() {
+    // Arrange
+    Tarefa entrada = tarefaValida();
+    Tarefa salva = tarefaPersistida(1L);
+    when(tarefaRepository.save(any(Tarefa.class))).thenReturn(salva);
+
+    // Act
+    Tarefa resultado = tarefaService.criar(entrada);
+
+    // Assert
+    assertThat(resultado.getId()).isEqualTo(1L);
+    assertThat(resultado.getTitulo()).isEqualTo(entrada.getTitulo());
+    verify(tarefaRepository).save(entrada);
+}
+```
+
+## Detalhes específicos por teste
+
+### Criar
+- Mockar `repository.save(...)` para retornar uma tarefa com ID populado
+- Verificar que o retorno tem ID e os campos corretos
+- Usar `verify(tarefaRepository).save(entrada)` para garantir que foi chamado com o argumento certo
+- Opcionalmente usar `ArgumentCaptor<Tarefa>` para inspeção mais detalhada
+
+### Listar
+- Caso vazio: `when(repository.findAll()).thenReturn(emptyList())` → assertar lista vazia
+- Caso com dados: retornar `List.of(tarefa1, tarefa2)` → assertar tamanho e conteúdo
+
+### Buscar por ID
+- Sucesso: `when(repository.findById(1L)).thenReturn(Optional.of(tarefa))` → retorno correto
+- Falha: `when(repository.findById(99L)).thenReturn(Optional.empty())` → assertar `TarefaNaoEncontradaException` com `assertThatThrownBy(() -> ...).isInstanceOf(...).hasMessageContaining("99")`
+
+### Atualizar — TESTE CRÍTICO
+- **Cenário deve validar preservação de `dataCriacao`**:
+  - `Arrange`: criar `tarefaExistente` com `dataCriacao = 2024-01-01T10:00`. Mock `findById` retorna ela. Mock `save` retorna ela mesma (Mockito devolve o argumento via `thenAnswer(inv -> inv.getArgument(0))`)
+  - `Act`: chamar `atualizar(id, novosDados)` onde `novosDados` tem outro título mas `dataCriacao` nulo
+  - `Assert`: o retorno tem o **título novo** mas **`dataCriacao` original preservada** (`assertThat(resultado.getDataCriacao()).isEqualTo(LocalDateTime.of(2024, 1, 1, 10, 0))`)
+- **Cenário de ID inexistente**: `findById` retorna `Optional.empty()` → assertar exceção. Verificar que `save` **nunca foi chamado** com `verify(repository, never()).save(any())`
+
+### Apagar
+- Sucesso: `when(repository.existsById(1L)).thenReturn(true)` → chama `deleteById`. Verificar `verify(repository).deleteById(1L)`
+- Falha: `when(repository.existsById(99L)).thenReturn(false)` → assertar exceção. Verificar que `deleteById` **nunca foi chamado** com `verify(repository, never()).deleteById(any())`
+
+## Estilo de código
+- Java 11 idiomático
+- Imports estáticos para `assertThat`, `assertThatThrownBy`, `when`, `verify`, `any`, `never` — testes ficam muito mais legíveis
+- Sem JavaDoc nos métodos de teste — o nome do método é a documentação
+- Imports sem wildcard, exceto os estáticos do Mockito/AssertJ que são **idiomáticos com wildcard** (`import static org.mockito.Mockito.*` é aceito em testes)
+
+# Critérios de "pronto"
+- [ ] `./mvnw test` executa todos os testes com sucesso (verde)
+- [ ] Todos os métodos públicos do `TarefaService` têm pelo menos um teste de sucesso e um de falha (quando aplicável)
+- [ ] Teste de atualização **prova explicitamente** que `dataCriacao` é preservado
+- [ ] Testes de erro (ID inexistente) verificam que **operação destrutiva não foi chamada** (`save` ou `deleteById` nunca executado)
+- [ ] Nenhum teste sobe contexto Spring (`@SpringBootTest` não aparece)
+- [ ] Nenhum teste usa banco real
+- [ ] Cobertura visual: ao abrir o relatório de cobertura (`./mvnw test jacoco:report` se Jacoco estiver configurado, ou IDE), `TarefaService` deve estar próximo de 100%
+- [ ] `docs/backlog.md` atualizado: itens cobertos marcados `[x]`
+- [ ] `CLAUDE.md` atualizado se for necessário registrar a convenção de idioma misto
+
+# Restrições
+- NÃO criar testes de controller, repository ou integração (etapas separadas)
+- NÃO adicionar dependências no `pom.xml` (`spring-boot-starter-test` já tem tudo)
+- NÃO configurar Jacoco neste prompt (etapa de qualidade — Release 2)
+- NÃO alterar código de produção (`TarefaService`, etc.). Se um teste exigir mudança no service, **pare e me avise** — pode indicar bug ou má interface
+- NÃO alterar `escopo-todo.md`, `docs/diagramas.md`, `application.properties`
+- Se algo no escopo contradiz este prompt, **escopo ganha** — sinalizar a divergência
+
+# Resposta esperada
+1. Lista de arquivos criados/alterados
+2. Lista dos testes implementados (nome do método + 1 linha descrevendo o que valida)
+3. Saída resumida de `./mvnw test` (número de testes, tempo de execução, todos verdes)
+4. IDs do backlog marcados como `[x]`
+5. Comando para rodar apenas a suíte do service: `./mvnw test -Dtest=TarefaServiceTest`
+6. Eventuais divergências entre docs ou ajustes que precisaram ser feitos
