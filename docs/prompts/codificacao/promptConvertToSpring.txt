@@ -1,0 +1,58 @@
+# Contexto
+MVP de API REST em Java 11 para gerenciar tarefas. Documentos de planejamento concluídos:
+- `escopo-todo.md` — escopo técnico
+- `docs/backlog.md` — backlog por release com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos
+- `CLAUDE.md` — convenções
+
+**Leia os quatro antes de começar.**
+
+O projeto foi criado manualmente pelo IntelliJ como projeto Java 11 puro — **ainda não é um projeto Spring Boot**. Esta é a primeira etapa de implementação: converter o projeto em Spring Boot funcional, sem ainda criar entidades, repositories, services ou controllers de domínio.
+
+Esta etapa corresponde ao item de setup da Release 1 — Core no `docs/backlog.md` (provavelmente `RT-001`; confirme o ID exato consultando o documento).
+
+# Objetivo
+Converter o projeto Java atual em projeto Spring Boot 2.7.x funcional, com:
+- Build tool **Maven** (com Maven Wrapper `./mvnw`)
+- Spring Boot **2.7.18** (última 2.7.x estável; compatível com Java 11)
+- Estrutura de diretórios padrão Maven (`src/main/java`, `src/main/resources`, `src/test/java`)
+- Classe principal anotada com `@SpringBootApplication`
+- `application.properties` com H2 em modo arquivo configurado
+- Aplicação sobe sem erros e responde ao endpoint `/actuator/health`
+
+# Pré-execução obrigatória
+Antes de fazer qualquer alteração:
+1. Listar a estrutura atual do projeto (`ls -la`, `find . -type f -not -path './.git/*' -not -path './.idea/*'`)
+2. Verificar se existe `pom.xml` ou `build.gradle` na raiz e seu conteúdo, se houver
+3. Verificar se já existe alguma classe Java no projeto e em qual diretório
+4. Imprimir um **plano de conversão** no chat antes de tocar em arquivo: o que vai criar, o que vai mover, o que vai apagar
+5. **Pausar e aguardar minha confirmação** antes de executar o plano
+
+Se houver qualquer arquivo Java pré-existente que não seja boilerplate da IDE, sinalize antes de mover/alterar.
+
+# Configuração obrigatória após confirmação
+
+## `pom.xml`
+- `parent`: `spring-boot-starter-parent` versão `2.7.18`
+- `java.version`: `11`
+- `groupId`/`artifactId`/`name`: derivar do que estiver definido em `CLAUDE.md` (pacote base) ou perguntar se não estiver claro
+- Dependências (apenas as necessárias para esta etapa):
+  - `spring-boot-starter-web`
+  - `spring-boot-starter-data-jpa`
+  - `spring-boot-starter-validation`
+  - `spring-boot-starter-actuator`
+  - `com.h2database:h2` (scope `runtime`)
+  - `spring-boot-starter-test` (scope `test`)
+- Plugin: `spring-boot-maven-plugin`
+
+## Maven Wrapper
+- Gerar `./mvnw`, `./mvnw.cmd`, `.mvn/wrapper/`
+- Versão do Maven Wrapper compatível com Spring Boot 2.7
+
+## Classe principal
+- Nome: derivar do pacote base (ex.: `TasksApplication` em `com.<dominio>.tasks`)
+- Anotada com `@SpringBootApplication`
+- Método `main` padrão com `SpringApplication.run(...)`
+
+## `src/main/resources/application.properties`
+```properties

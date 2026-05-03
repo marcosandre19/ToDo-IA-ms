@@ -1,1 +1,89 @@
-1
+# Contexto
+MVP de API REST em Spring Boot (Java 11) para gerenciar tarefas. Estou desenvolvendo de forma incremental. Acabei de concluir uma etapa de implementação e tenho mudanças não commitadas no working tree.
+
+Quero que os commits desta etapa sigam **Conventional Commits** com commits **separados por unidade lógica de mudança**, não um commit gigante com tudo junto.
+
+# Objetivo
+Analisar todas as mudanças não commitadas (working tree + staging area + arquivos novos não rastreados), agrupar por unidade lógica e criar **um ou mais commits** seguindo Conventional Commits.
+
+# Convenção de commits
+
+## Formato
+```
+<type>(<scope>): <subject>
+
+<body opcional>
+
+<footer opcional>
+```
+
+- **subject**: imperativo, minúsculo, sem ponto final, ≤72 caracteres
+- **body**: usar SOMENTE quando agregar contexto relevante (motivação, decisão técnica). Não repetir o que o subject já diz. Quebrar em linhas ≤72 caracteres
+- **footer**: usar para `BREAKING CHANGE:` ou referência a IDs do backlog (ex.: `Refs: RT-001, RF-003`)
+- Idioma: **inglês** no subject e body (padrão Conventional Commits) — exceto se o `CLAUDE.md` definir outro idioma
+
+## Types permitidos
+- `feat` — funcionalidade nova de produto (entidade, endpoint, regra de negócio)
+- `fix` — correção de bug
+- `refactor` — mudança de código sem alterar comportamento externo
+- `chore` — setup, build, dependências, configs que não afetam código de produção
+- `docs` — alteração apenas em arquivos `.md` ou JavaDoc
+- `test` — adição/alteração de testes
+- `style` — formatação, sem mudança de lógica
+- `perf` — melhoria de performance
+- `build` — alterações no sistema de build (`pom.xml`, Maven Wrapper)
+- `ci` — alterações em pipeline de CI
+
+## Scopes recomendados (use os que se aplicarem; crie outros só se necessário)
+`setup`, `config`, `entity`, `enum`, `repository`, `service`, `controller`, `dto`, `exception`, `validation`, `actuator`, `docs`, `backlog`, `scope`, `diagrams`
+
+# Regras de agrupamento
+
+Um commit deve representar **uma mudança coerente e revertível isoladamente**. Aplique estes critérios:
+
+1. **Separe por camada/responsabilidade**: setup de build (`chore(setup)`) não vai junto com entidade (`feat(entity)`)
+2. **Separe produção de documentação**: alteração em `.md` vai em commit `docs(...)` separado, mesmo que esteja relacionada à mudança de código
+3. **Separe por tipo conceitual**: `.gitignore` é `chore(config)`, não vai junto com dependências do `pom.xml` que é `build`
+4. **Junte o que é indissociável**: se uma classe e o `application.properties` precisam um do outro pra compilar/funcionar, vai no mesmo commit
+5. **Marcação de itens no backlog**: alteração no `docs/backlog.md` marcando `[x]` em itens pode ir junto com o commit que entrega o item, OU em commit `docs(backlog)` separado — escolha um critério e mantenha consistente na sequência
+
+Se uma mudança não couber claramente em nenhum tipo, pare e pergunte antes de commitar.
+
+# Pré-execução obrigatória
+
+Antes de fazer qualquer commit:
+
+1. Executar `git status` e `git diff` (incluindo `git diff --cached` se houver staging) e listar tudo que mudou
+2. Apresentar no chat um **plano de commits** no formato:
+
+```
+   Plano de commits (N commits):
+
+   1. <type>(<scope>): <subject>
+      Arquivos:
+        - path/arquivo1
+        - path/arquivo2
+      Justificativa: <por que esses arquivos juntos neste commit>
+
+   2. <type>(<scope>): <subject>
+      Arquivos:
+        - path/arquivo3
+      Justificativa: ...
+```
+
+3. **Pausar e aguardar minha confirmação** antes de executar `git add` / `git commit`
+4. Se eu pedir ajustes (mover arquivo de um commit pra outro, mudar mensagem, dividir mais, juntar dois), reapresentar o plano revisado e aguardar nova confirmação
+
+# Execução
+Após confirmação:
+- Para cada commit do plano, fazer `git add` apenas dos arquivos daquele commit (não usar `git add .` ou `git add -A`)
+- Fazer `git commit` com a mensagem definida no plano (usar `-m` para subject simples; usar heredoc ou múltiplos `-m` para body/footer)
+- NÃO fazer `git push` em hipótese alguma — push é decisão minha
+- NÃO criar branch, tag, ou alterar config do git
+- Após cada commit, imprimir `git log --oneline -n 1` para confirmar
+
+# Resposta esperada (após execução)
+1. Lista final de commits criados, em ordem, com hash curto e subject
+2. Saída de `git status` (deve estar limpo, exceto se houver arquivo intencionalmente deixado de fora)
+3. Comando para eu inspecionar os commits localmente: `git log --oneline -n <N>` e `git show <hash>` para um exemplo
+4. Aviso se algum arquivo não foi incluído em nenhum commit e por quê

@@ -1,0 +1,62 @@
+# Contexto
+MVP de API REST em Spring Boot (Java 11) para gerenciar tarefas. Fase de requisitos concluída. Documentos de referência:
+- `escopo-todo.md` — escopo técnico (modelo de dados, endpoints, regras)
+- `docs/backlog.md` — backlog por release, com IDs RF/RT
+- `docs/diagramas.md` — arquitetura e fluxos
+- `CLAUDE.md` — convenções e estrutura de pacotes
+
+**Leia os quatro documentos antes de começar.** Se houver divergência entre eles, pare e me avise antes de codar — não decida sozinho qual seguir.
+
+Início da fase de implementação. Estratégia: implementar por camadas, de baixo pra cima:
+1. **Enums + Entidades** ← esta etapa
+2. Exceptions
+3. Repository
+4. Service
+5. Controller
+
+Pré-condição: o projeto já foi convertido para Spring Boot (pom.xml com starters, classe `@SpringBootApplication`, `application.properties` configurado, H2 em modo arquivo funcionando). Confirme isso antes de seguir — se a pré-condição não estiver satisfeita, pare e avise.
+
+# Objetivo
+Implementar APENAS:
+1. Enum(s) de domínio definidos no escopo (provavelmente `TaskStatus` — verifique no `escopo-todo.md`)
+2. Entidade(s) JPA definidas no escopo (provavelmente `Task` — verifique no `escopo-todo.md`)
+
+Nada além disso nesta etapa: sem repository, sem service, sem controller, sem DTO, sem exception customizada.
+
+# Decisões técnicas a seguir
+- **Pacotes**: respeitar a estrutura definida em `CLAUDE.md`/`escopo-todo.md`. Enums em `entity` ou `entity.enums` conforme o escopo definir; entidades em `entity`
+- **ID**: `Long` autoincrement com `@GeneratedValue(strategy = GenerationType.IDENTITY)` salvo se o escopo disser outra coisa
+- **Datas**: `LocalDateTime` (não `Date`, não `Timestamp`)
+- **Timestamps automáticos**: usar `@PrePersist` e `@PreUpdate` (preferir sobre `@CreationTimestamp`/`@UpdateTimestamp` por ser mais explícito e não depender do Hibernate)
+- **Validações Bean Validation**: aplicar nos campos da entidade conforme regras do escopo (`@NotBlank`, `@Size`, `@NotNull`, etc.) — usar `jakarta.validation.*` se Spring Boot 3+, `javax.validation.*` se Spring Boot 2.x
+- **Enum no banco**: `@Enumerated(EnumType.STRING)` sempre — nunca ORDINAL
+- **`equals`/`hashCode`**: NÃO sobrescrever nesta etapa (deixar default do `Object`). Se for absolutamente necessário, usar apenas o ID com checagem de null e tipo via `instanceof`/`getClass`, e justificar em comentário
+- **Lombok**: usar SOMENTE se já estiver declarado em `CLAUDE.md` ou `pom.xml`. Caso contrário, escrever getters/setters/construtores explicitamente
+- **Construtores**: construtor sem argumentos (exigido por JPA) + construtor com campos obrigatórios. NÃO criar construtor com todos os campos incluindo ID e timestamps
+- **Anotações da tabela**: `@Table(name = "...")` e `@Column(name = "...", nullable = ..., length = ...)` explícitos, nomes em snake_case no banco
+
+# Critérios de "pronto"
+- [ ] Código compila (`./mvnw compile` sem erros)
+- [ ] Aplicação sobe (`./mvnw spring-boot:run`) sem exceção no boot
+- [ ] Hibernate cria a(s) tabela(s) no H2 (verificável via console `/h2-console`)
+- [ ] Estrutura de pacotes e nomes de classes batem exatamente com o `escopo-todo.md`
+- [ ] Validações Bean Validation declaradas conforme regras do escopo
+- [ ] Enum persiste como STRING no banco
+- [ ] Backlog atualizado: marcar `[x]` os itens RF/RT cobertos por esta etapa, sem alterar mais nada no documento
+
+# Estilo de código
+- Java 11 idiomático, sem usar features de Java 14+ (`record`, `var` em campos, etc.)
+- JavaDoc curto apenas em classes e em campos não-óbvios. Sem JavaDoc gerado por hábito ("Gets the id" em getter de id)
+- Ordem dos elementos na classe: campos → construtores → callbacks JPA (`@PrePersist`, `@PreUpdate`) → getters/setters
+- Imports organizados, sem wildcard (`import java.util.*`)
+
+# Resposta esperada
+- Criar/editar APENAS arquivos das camadas de enum e entidade
+- Atualizar `docs/backlog.md` marcando os itens cobertos
+- NÃO criar repository, service, controller, DTO, exception customizada
+- NÃO alterar `pom.xml`, `application.properties`, classe principal
+- Ao final, imprima no chat:
+  1. Lista de arquivos criados/alterados (caminho relativo)
+  2. IDs do backlog marcados como concluídos
+  3. Comando exato para eu validar localmente (compilar, subir, abrir o console H2 e ver as tabelas)
+  4. Qualquer divergência encontrada entre os documentos `.md` que você teve que resolver, e como resolveu (ou se parou e está pedindo input)
