@@ -1,0 +1,171 @@
+# Contexto
+MVP de API REST em Spring Boot 2.7.x (Java 11) para gerenciar tarefas. Documentos de referência:
+- `escopo-todo.md` — escopo técnico
+- `docs/backlog.md` — backlog por release
+- `docs/diagramas.md` — arquitetura e fluxos
+- `CLAUDE.md` — convenções (idioma pt-br para domínio, inglês para sufixos técnicos)
+- `README.md` — documentação geral do projeto
+
+**Leia os cinco documentos antes de começar.** Se houver divergência, pare e me avise.
+
+Etapas concluídas: conversão Spring Boot, entidades, exceções, repository, service, controller, testes do service, testes do controller, README. A API está funcional e testada.
+
+Etapa atual: **adicionar documentação OpenAPI/Swagger aos endpoints**.
+
+# Objetivo
+Adicionar documentação OpenAPI 3 ao controller, expondo a UI interativa do Swagger em uma URL local. Atualizar `README.md`, `escopo-todo.md` e `docs/backlog.md` refletindo a adição.
+
+# Decisões técnicas (seguir exatamente)
+
+## Biblioteca
+- **`springdoc-openapi-ui` versão 1.7.0** (compatível com Spring Boot 2.7.x; versões 2.x são pra Spring Boot 3+)
+- Adicionar dependência ao `pom.xml`:
+```xml
+  <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-ui</artifactId>
+      <version>1.7.0</version>
+  </dependency>
+```
+- **NÃO usar** `springfox-swagger2` (descontinuado), `springdoc-openapi-starter-webmvc-ui` (versão 2.x — incompatível com Spring Boot 2.7).
+
+## Configuração no `application.properties`
+Adicionar:
+```properties
+# OpenAPI / Swagger
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.operations-sorter=method
+springdoc.swagger-ui.tags-sorter=alpha
+springdoc.show-actuator=false
+```
+
+- `operations-sorter=method` agrupa as operações por verbo HTTP, mais previsível que ordem alfabética
+- `show-actuator=false` mantém `/actuator/health` fora da documentação da API (é infra, não domínio)
+
+## Anotações no `TarefaController`
+
+### Tag da classe
+- `@Tag(name = "Tarefas", description = "Operações de gerenciamento de tarefas")` na classe
+- Sem `@Tag` a UI exibe nome derivado do nome da classe ("tarefa-controller"), que fica feio
+
+### Por endpoint
+Cada método do controller deve ter:
+- `@Operation(summary = "...", description = "...")` — `summary` é a linha curta na UI; `description` opcional, só se agregar
+- `@ApiResponses(value = { @ApiResponse(...), @ApiResponse(...) })` — listar todos os status codes que o endpoint pode retornar, com `responseCode` e `description`
+
+Status codes a documentar **conforme `escopo-todo.md`** (e código real do controller):
+
+| Endpoint | Status documentados |
+|----------|---------------------|
+| `POST /tarefas` | 201, 400 |
+| `GET /tarefas` | 200 |
+| `GET /tarefas/{id}` | 200, 404 |
+| `PUT /tarefas/{id}` | 200, 400, 404 |
+| `DELETE /tarefas/{id}` | 204, 404 |
+| `PATCH /tarefas/{id}/status` (ou path real) | 200, 400, 404 |
+
+Para endpoints que retornam erro estruturado (4xx), incluir `content = @Content(schema = @Schema(implementation = ErroResponse.class))` no `@ApiResponse` correspondente — assim a UI mostra o formato do JSON de erro.
+
+### Textos das anotações
+- **Em pt-br**, consistente com o resto do projeto
+- Tom técnico, direto, sem floreio
+- `summary`: imperativo curto ("Cria uma nova tarefa", "Lista todas as tarefas", "Busca tarefa por identificador")
+- `description` opcional — usar apenas se houver detalhe relevante além do `summary`. Não duplicar.
+
+## Anotações nos DTOs (`TarefaRequest`, `TarefaResponse`, `AtualizarStatusRequest`, `ErroResponse`)
+
+Em cada campo dos DTOs, adicionar:
+- `@Schema(description = "...", example = "...")`
+- `description` em pt-br
+- `example` com valor realista (não `"string"`, não `"example"`) — exemplo: `example = "Comprar leite"`, `example = "PENDENTE"`, `example = 1`
+- Para enums: a UI já lista os valores possíveis automaticamente; descrever só o significado
+
+Exemplo:
+```java
+@Schema(description = "Título da tarefa", example = "Comprar leite", maxLength = 100)
+@NotBlank(message = "O título é obrigatório")
+@Size(max = 100, message = "O título deve ter no máximo 100 caracteres")
+private String titulo;
+```
+
+**Não duplicar** restrições já expressas em Bean Validation (`@NotBlank`, `@Size`) — o springdoc lê essas anotações automaticamente. `@Schema` adiciona apenas descrição e exemplo.
+
+### Schema da entidade `Tarefa`
+A entidade JPA **não** deve receber `@Schema` — ela é interna, não faz parte do contrato da API. Documentação fica nos DTOs.
+
+## Bean de configuração (opcional, mas recomendado)
+Criar `OpenApiConfig.java` em `config/` (criar pacote se não existir) com metadados gerais da API:
+
+```java
+@Configuration
+public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI tarefasOpenAPI() {
+        return new OpenAPI()
+            .info(new Info()
+                .title("API de Gerenciamento de Tarefas")
+                .description("MVP de API REST para gerenciar tarefas (CRUD).")
+                .version("1.0.0"));
+    }
+}
+```
+
+Isso preenche o cabeçalho da UI com nome e descrição do projeto. Sem essa config, aparece "OpenAPI definition" genérico.
+
+# Atualizações em outros arquivos
+
+## `README.md`
+- Na seção **Stack**: adicionar `springdoc-openapi 1.7.0`
+- Na seção **Execução**: adicionar URL do Swagger UI:
+```
+  Swagger UI: http://localhost:8080/swagger-ui.html
+  OpenAPI JSON: http://localhost:8080/v3/api-docs
+```
+- Na seção **Limitações conhecidas**: remover o item "Sem documentação OpenAPI" (se existir)
+- Na seção **Próximos passos**: remover o item correspondente se estiver lá
+
+## `escopo-todo.md`
+- Adicionar `springdoc-openapi-ui` na seção de dependências, com 1 linha de justificativa
+- Se houver seção de configurações, adicionar as properties novas
+
+## `docs/backlog.md`
+- Adicionar item RT na **Release 3 — Entrega final** (ou na release atual onde estamos), com critérios de aceite testáveis:
+  - `curl http://localhost:8080/v3/api-docs` retorna JSON OpenAPI 3 válido
+  - `http://localhost:8080/swagger-ui.html` carrega a UI no navegador
+  - Todos os endpoints aparecem com summary, status codes documentados e schemas dos DTOs
+- Marcar como `[x]` ao final desta etapa
+
+## `CLAUDE.md`
+- Adicionar nota curta sobre OpenAPI estar habilitado e onde
+
+# Critérios de "pronto"
+- [ ] `./mvnw clean compile` sem erros
+- [ ] Aplicação sobe e `/actuator/health` continua respondendo
+- [ ] `curl http://localhost:8080/v3/api-docs` retorna JSON OpenAPI 3 válido (status 200, JSON parseável, contém os 6 endpoints)
+- [ ] `http://localhost:8080/swagger-ui.html` carrega a UI sem erro
+- [ ] Cada endpoint na UI mostra: summary em pt-br, status codes com descrição, schema do request body (quando aplicável), schema da response
+- [ ] Cada DTO de domínio tem campos com descrição e exemplo realista
+- [ ] Erros (4xx) referenciam o schema `ErroResponse` na documentação
+- [ ] `/actuator/health` **não aparece** na documentação OpenAPI (`show-actuator=false`)
+- [ ] Testes existentes continuam passando (`./mvnw test`)
+- [ ] `README.md`, `escopo-todo.md`, `docs/backlog.md`, `CLAUDE.md` atualizados conforme acima
+
+# Restrições
+- NÃO usar `springfox`, `swagger-core` standalone, ou versões 2.x do springdoc
+- NÃO criar testes nesta etapa (a UI funcional já é a validação)
+- NÃO anotar a entidade `Tarefa` com `@Schema` — só DTOs
+- NÃO duplicar Bean Validation no `@Schema` (springdoc lê automaticamente)
+- NÃO inventar exemplos genéricos ("string", "example") — exemplos devem ser realistas
+- NÃO adicionar autenticação, security schemes, ou configurações de produção (CORS, servers list) — fora do escopo do MVP
+- Se algo no escopo contradiz este prompt, **escopo ganha** — sinalizar a divergência
+
+# Resposta esperada
+1. Lista de arquivos criados/alterados, agrupados por tipo (dependência, código, configuração, documentação)
+2. Trecho exato adicionado ao `pom.xml`
+3. Properties adicionadas ao `application.properties`
+4. URLs para validar localmente: Swagger UI e OpenAPI JSON
+5. Print/resumo de como cada endpoint aparece na UI (summary + status codes documentados)
+6. IDs do backlog marcados como `[x]`
+7. Eventuais divergências entre docs e como resolveu
